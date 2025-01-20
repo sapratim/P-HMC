@@ -221,21 +221,19 @@ pxhmc_dur <- function(y, alpha, lambda, sigma2, iter, eps_hmc, L, start)
 #######################################################################################
 
 
-
-
 load("warmup_chain.Rdata")
 iter <- 1e4
 lamb_coeff <- 1e-4
 sigma2_hat <- 0.01
 alpha_hat <- 1.15/sigma2_hat
-eps_px_per <-  0.004
-eps_px_dur <-  0.0001
+eps_px_per <-  0.003
+eps_px_dur <-  0.008
 L <- 10
 
-system.time(pxhmc_per <- pxhmc(y=y, alpha = alpha_hat, lambda = lamb_coeff, sigma2 = sigma2_hat, 
+system.time(pxhmc_per_run <- pxhmc(y=y, alpha = alpha_hat, lambda = lamb_coeff, sigma2 = sigma2_hat, 
                    iter = iter, eps_hmc = eps_px_per, L=L, start = warmup_end_iter))
 
-system.time(pxhmc_dur <- pxhmc_dur(y=y, alpha = alpha_hat, lambda = lamb_coeff, sigma2 = sigma2_hat, 
+system.time(pxhmc_dur_run <- pxhmc_dur(y=y, alpha = alpha_hat, lambda = lamb_coeff, sigma2 = sigma2_hat, 
                    iter = iter, eps_hmc = eps_px_dur, L=L, start = warmup_end_iter))
 
 dim <- length(y)
@@ -244,16 +242,16 @@ rand <- 1:dim
 pdf("nn_acf_HMC_PervsDur.pdf", height = 6, width = 6)
 
 lag.max <- 100
-acf_per_hmc <- acf(pxhmc_per[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
-acf_dur_hmc <- acf(pxhmc_dur[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
+acf_per_hmc <- acf(pxhmc_per_run[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
+acf_dur_hmc <- acf(pxhmc_dur_run[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
 
 diff.acf <- matrix(0, ncol = dim, nrow = lag.max + 1)
 diff.acf[,1] <- acf_dur_hmc - acf_per_hmc
 
 for (i in 2:dim) 
 {
-  acf_per_hmc <- acf(pxhmc_per[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
-  acf_dur_hmc <- acf(pxhmc_dur[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
+  acf_per_hmc <- acf(pxhmc_per_run[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
+  acf_dur_hmc <- acf(pxhmc_dur_run[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
   diff.acf[,i] <- acf_dur_hmc - acf_per_hmc
 }
 
