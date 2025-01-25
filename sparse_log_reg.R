@@ -27,9 +27,9 @@ softthreshold <- function(u, lambda) {       ####  u is a vector
 
 f <- function(z) {colSums(log(1 + exp(x%*%z)) - y*(x%*%z)) + sum((beta_point - z)^2)/(2*lamb)}
 
-gradf <- function(z) {colSums(c(1/(1+exp(x%*%beta)^{-1}) - y)*x) + (beta_point - z)/(2*lamb)}
+gradf <- function(z) {colSums(c(1/(1+exp(-x%*%beta)) - y)*x) + (beta_point - z)/lamb}
 
-g <- function(z) {alpha*sum(abs(x))}
+g <- function(z) {alpha*sum(abs(z))}
 
 proxg <- function(z, lambda) {softthreshold(z, alpha*lambda)}
 
@@ -52,9 +52,7 @@ prox_func_dur <- function(beta, lambda) {   #### input x and y as a vector
 grad_logpiLam_dur <- function(x, y, beta, lambda)  # gradient of log target for Durmus
 {
   beta_prox <- prox_func_dur(beta, lambda)
-  exp_term <- exp(x%*%beta)
-  grad_f_coeff <- 1/(1+exp_term^(-1)) - y
-  grad_f <- colSums(c(grad_f_coeff)*x)
+  grad_f <- colSums(c(1/(1+exp(-x%*%beta)) - y)*x)
   ans <-  grad_f + (beta-beta_prox)/lambda
   return(-ans)
 }
@@ -85,7 +83,7 @@ pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fas
     for (j in 1:L)
     {
       samp <- samp + eps_hmc*p_current   # full step for position
-      beta_point <- samp
+      beta_point <<- samp
       U_samp <- -grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
       if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
     }
@@ -103,8 +101,7 @@ pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fas
     {
       samp.hmc[i,] <- samp
       accept <- accept + 1
-    }
-    else
+    }else
     {
       samp.hmc[i,] <- q_current
       samp <- q_current
@@ -162,8 +159,7 @@ pxhmc_dur <- function(x, y, lambda, iter, eps_hmc, L, start)
     {
       samp.hmc[i,] <- samp
       accept <- accept + 1
-    }
-    else
+    }else
     {
       samp.hmc[i,] <- q_current
       samp <- q_current
@@ -182,6 +178,8 @@ pxhmc_dur <- function(x, y, lambda, iter, eps_hmc, L, start)
 ########################## Sparse logistic regression run #############################
 #######################################################################################
 
+################### PIMA Indian diabetes dataset ###################
+
 data <- MASS::Pima.tr
 x <- as.matrix(data[,c(1:7)])
 y <- as.matrix(ifelse(data$type == "Yes", 1, 0))
@@ -193,7 +191,6 @@ beta <- c(unlist(logistic_fit$coefficients[-1]))
 beta_start <- as.matrix(unname(beta))
 alpha <- 2
 
-
 iter <- 1e3
 lamb_coeff <- 1e-4
 eps_px_chaari <- 0.0001
@@ -203,12 +200,12 @@ L_pxdur <- 10
 tau <- 5
 
 system.time(pxhmc_chaari_run <- pxhmc_chaari(x, y, lambda = lamb_coeff, iter = iter,
-                                         eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start, 
-                                         fasta_start = beta_start, fasta_step_start = tau))
+                                             eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start, 
+                                             fasta_start = beta_start, fasta_step_start = tau))
 
 
 system.time(pxhmc_dur_run <- pxhmc_dur(x, y, lambda = lamb_coeff, iter = iter, 
-                                  eps_hmc = eps_px_dur, L=L_pxdur, start = beta_start))
+                                       eps_hmc = eps_px_dur, L=L_pxdur, start = beta_start))
 
 
 dim <- length(beta_start)
