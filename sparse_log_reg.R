@@ -25,13 +25,13 @@ softthreshold <- function(u, lambda) {       ####  u is a vector
 
 ######### Proximity mapping functions for Chaari
 
-f <- function(z) {colSums(log(1 + exp(x%*%z)) - y*(x%*%z))}
+f <- function(z) {colSums(log(1 + exp(x%*%z)) - y*(x%*%z)) + sum((beta_point - z)^2)/(2*lamb)}
 
-gradf <- function(z) {colSums(c(1/(1+exp(x%*%beta)^{-1}) - y)*x)}
+gradf <- function(z) {colSums(c(1/(1+exp(x%*%beta)^{-1}) - y)*x) + (beta_point - z)/(2*lamb)}
 
 g <- function(z) {alpha*sum(abs(x))}
 
-proxg <- function(z, lambda) {softthreshold(z, lambda)}
+proxg <- function(z, lambda) {softthreshold(z, alpha*lambda)}
 
 ######### gradient of log target
 
@@ -65,6 +65,7 @@ pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fas
 {
   nvar <- length(start)
   samp.hmc <- matrix(0, nrow = iter, ncol = nvar)
+  lamb <- lambda
   
   # starting value computations
   samp <- start
@@ -77,12 +78,14 @@ pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fas
   for (i in 2:iter) 
   {
     p_prop <- mom_mat[i,]
+    beta_point <- samp
     U_samp <- -grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
     p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
     q_current <- samp
     for (j in 1:L)
     {
       samp <- samp + eps_hmc*p_current   # full step for position
+      beta_point <- samp
       U_samp <- -grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
       if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
     }
