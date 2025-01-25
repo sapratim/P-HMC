@@ -65,7 +65,7 @@ pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fas
 {
   nvar <- length(start)
   samp.hmc <- matrix(0, nrow = iter, ncol = nvar)
-  lamb <- lambda
+  lamb <<- lambda
   
   # starting value computations
   samp <- start
@@ -78,7 +78,7 @@ pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fas
   for (i in 2:iter) 
   {
     p_prop <- mom_mat[i,]
-    beta_point <- samp
+    beta_point <<- samp
     U_samp <- -grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
     p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
     q_current <- samp
