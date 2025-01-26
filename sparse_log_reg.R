@@ -8,6 +8,7 @@ library(Matrix)
 library(ks)
 library(stats)
 library(fasta)
+library(glmnet)
 ##############------Functions------##################################
 
 log_pi <- function(x,y,beta)
@@ -19,25 +20,27 @@ log_pi <- function(x,y,beta)
 
 #########  Soft threshold function
 
-softthreshold <- function(u, lambda) {       ####  u is a vector
-  return(sign(u)*sapply(u, FUN=function(x) {max(abs(x)-lambda,0)}))
+softthreshold <- function(u, pen) {       ####  u is a vector
+  return(sign(u)*sapply(u, FUN=function(x) {max(abs(x)-pen,0)}))
 }
 
 ######### Proximity mapping functions for Chaari
 
 f <- function(z) {colSums(log(1 + exp(x%*%z)) - y*(x%*%z)) + sum((beta_point - z)^2)/(2*lamb)}
 
-gradf <- function(z) {colSums(c(1/(1+exp(-x%*%beta)) - y)*x) + (beta_point - z)/lamb}
+gradf <- function(z) {colSums(c(1/(1+exp(-x%*%z)) - y)*x) + (beta_point - z)/lamb}
 
 g <- function(z) {alpha*sum(abs(z))}
 
-proxg <- function(z, lambda) {softthreshold(z, alpha*lambda)}
+proxg <- function(z, tau_fasta) {softthreshold(z, alpha*tau_fasta)}
 
 ######### gradient of log target
 
 grad_logpiLam <- function(beta, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)  
 {
-  beta_prox <- fasta(f, gradf, g, proxg, c(fasta_start), fasta_step_start)$x
+  temp <- fasta(f, gradf, g, proxg, c(beta), fasta_step_start, stepsizeShrink = .1, max_iters = 50)
+ # print(length(temp$objective))
+  beta_prox <- temp$x
   ans <-  (beta-beta_prox)/lambda
   return(-ans)
 }
@@ -185,28 +188,36 @@ x <- as.matrix(data[,c(1:7)])
 y <- as.matrix(ifelse(data$type == "Yes", 1, 0))
 colnames(x) <- NULL
 colnames(y) <- NULL
-colnames(data) = c("x1", "x2", "x3", "x4", "x5", "x6", "x7", "y")
-logistic_fit <- glm(y ~ x1+x2+x3+x4+x5+x6+x7, data = data, family = binomial)
-beta <- c(unlist(logistic_fit$coefficients[-1]))
-beta_start <- as.matrix(unname(beta))
 alpha <- 2
 
-iter <- 1e3
+colnames(data) = c("x1", "x2", "x3", "x4", "x5", "x6", "x7", "y")
+logistic_fit <- glmnet(x, y, family = binomial,
+                       alpha = 1, lambda = alpha)$beta
+  
+beta <- logistic_fit #c(unlist(logistic_fit$coefficients[-1]))
+beta_start <- as.matrix(unname(beta))
+
+iter <- 1e4
 lamb_coeff <- 1e-4
 eps_px_chaari <- 0.0001
 eps_px_dur <-  0.00185
 L_pxch <- 10
 L_pxdur <- 10
-tau <- 5
+tau <- 1
 
 system.time(pxhmc_chaari_run <- pxhmc_chaari(x, y, lambda = lamb_coeff, iter = iter,
                                              eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start, 
                                              fasta_start = beta_start, fasta_step_start = tau))
 
-
+iter <- 1e5
 system.time(pxhmc_dur_run <- pxhmc_dur(x, y, lambda = lamb_coeff, iter = iter, 
                                        eps_hmc = eps_px_dur, L=L_pxdur, start = beta_start))
 
+
+library(SimTools)
+cbind(colMeans(pxhmc_chaari_run[[1]]), colMeans(pxhmc_dur_run[[1]]))
+plot(as.Smcmc(pxhmc_chaari_run[[1]]), which = 1:4)
+plot(as.Smcmc(pxhmc_dur_run[[1]]), which = 5:7)
 
 dim <- length(beta_start)
 rand <- 1:dim
