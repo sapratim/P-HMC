@@ -14,7 +14,7 @@ library(glmnet)
 log_pi <- function(x,y,beta)
 {
   f <- sum(log(1+exp(x %*% beta)) - y*(x%*%beta))
-  g <- sum(abs(beta))
+  g <- alpha*sum(abs(beta))
   return(-(f+g))
 }
 
