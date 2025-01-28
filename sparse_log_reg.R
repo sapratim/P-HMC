@@ -119,7 +119,7 @@ pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fas
 }
 
 
-############### Durmus 
+######################################## Durmus #########################################
 
 
 pxhmc_dur <- function(x, y, lambda, iter, eps_hmc, L, start)
@@ -191,16 +191,17 @@ colnames(y) <- NULL
 alpha <- 2
 
 colnames(data) = c("x1", "x2", "x3", "x4", "x5", "x6", "x7", "y")
-logistic_fit <- glmnet(x, y, family = binomial,
-                       alpha = 1, lambda = alpha)$beta
+logistic_fit <- glmnet(x, y, family = "binomial",
+                      alpha = 1, lambda = alpha/length(y), nlambda = 1,
+                         standardize = FALSE, intercept = FALSE)$beta
   
 beta <- logistic_fit #c(unlist(logistic_fit$coefficients[-1]))
 beta_start <- as.matrix(unname(beta))
 
-iter <- 1e4
+iter <- 1e2
 lamb_coeff <- 1e-4
-eps_px_chaari <- 0.0001
-eps_px_dur <-  0.00185
+eps_px_chaari <- 0.00014
+eps_px_dur <-  0.0019
 L_pxch <- 10
 L_pxdur <- 10
 tau <- 1
@@ -209,38 +210,45 @@ system.time(pxhmc_chaari_run <- pxhmc_chaari(x, y, lambda = lamb_coeff, iter = i
                                              eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start, 
                                              fasta_start = beta_start, fasta_step_start = tau))
 
-iter <- 1e5
 system.time(pxhmc_dur_run <- pxhmc_dur(x, y, lambda = lamb_coeff, iter = iter, 
                                        eps_hmc = eps_px_dur, L=L_pxdur, start = beta_start))
 
+output <- list(pxhmc_chaari_run[[1]], pxhmc_dur_run[[1]])
 
-library(SimTools)
-cbind(colMeans(pxhmc_chaari_run[[1]]), colMeans(pxhmc_dur_run[[1]]))
-plot(as.Smcmc(pxhmc_chaari_run[[1]]), which = 1:4)
-plot(as.Smcmc(pxhmc_dur_run[[1]]), which = 5:7)
+save(output, file = "chains.Rdata")
 
-dim <- length(beta_start)
-rand <- 1:dim
-
-pdf("sparse_log_reg_acf.pdf", height = 6, width = 6)
-
-lag.max <- 100
-acf_chaari_hmc <- acf(pxhmc_chaari_run[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
-acf_dur_hmc <- acf(pxhmc_dur_run[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
-
-diff.acf <- matrix(0, ncol = dim, nrow = lag.max + 1)
-diff.acf[,1] <- acf_dur_hmc - acf_chaari_hmc
-
-for (i in 2:dim) 
-{
-  acf_chaari_hmc <- acf(pxhmc_chaari_run[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
-  acf_dur_hmc <- acf(pxhmc_dur_run[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
-  diff.acf[,i] <- acf_dur_hmc - acf_chaari_hmc
-}
-
-# Make boxplot of ACFs
-boxplot(t(diff.acf),
-        xlab = "Lags", col = "pink",
-        ylab = "Difference in ACFs of HMCs",ylim = range(diff.acf),
-        names = 0:lag.max, show.names = TRUE, range = 3)
-dev.off()
+# i <- 1
+# plot(density(pxhmc_dur_run[[1]][,i]))
+# abline(v=colMeans(pxhmc_dur_run[[1]])[i], col = "red")
+# i <- i+1
+# 
+# library(SimTools)
+# cbind(colMeans(pxhmc_chaari_run[[1]]), colMeans(pxhmc_dur_run[[1]]))
+# plot(as.Smcmc(pxhmc_chaari_run[[1]]), which = 1:4)
+# plot(as.Smcmc(pxhmc_dur_run[[1]]), which = 5:7)
+# 
+# dim <- length(beta_start)
+# rand <- 1:dim
+# 
+# pdf("sparse_log_reg_acf.pdf", height = 6, width = 6)
+# 
+# lag.max <- 100
+# acf_chaari_hmc <- acf(pxhmc_chaari_run[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
+# acf_dur_hmc <- acf(pxhmc_dur_run[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
+# 
+# diff.acf <- matrix(0, ncol = dim, nrow = lag.max + 1)
+# diff.acf[,1] <- acf_dur_hmc - acf_chaari_hmc
+# 
+# for (i in 2:dim) 
+# {
+#   acf_chaari_hmc <- acf(pxhmc_chaari_run[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
+#   acf_dur_hmc <- acf(pxhmc_dur_run[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
+#   diff.acf[,i] <- acf_dur_hmc - acf_chaari_hmc
+# }
+# 
+# # Make boxplot of ACFs
+# boxplot(t(diff.acf),
+#         xlab = "Lags", col = "pink",
+#         ylab = "Difference in ACFs of HMCs",ylim = range(diff.acf),
+#         names = 0:lag.max, show.names = TRUE, range = 3)
+# dev.off()
