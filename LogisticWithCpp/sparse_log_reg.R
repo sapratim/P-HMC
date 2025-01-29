@@ -9,6 +9,8 @@ library(ks)
 library(stats)
 library(fasta)
 library(glmnet)
+library(Rcpp)
+sourceCpp("fasta_chatgpt.cpp")
 ##############------Functions------##################################
 
 log_pi <- function(x,y,beta)

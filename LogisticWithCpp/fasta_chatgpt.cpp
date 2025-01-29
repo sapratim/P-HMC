@@ -3,104 +3,121 @@
 using namespace Rcpp;
 using namespace arma;
 
-// This is a simple example of exporting a C++ function to R. You can
-// source this function into an R session using the Rcpp::sourceCpp 
-// function (or via the Source button on the editor toolbar). Learn
-// more about Rcpp at:
-//
-//   http://www.rcpp.org/
-//   http://adv-r.had.co.nz/Rcpp.html
-//   http://gallery.rcpp.org/
-//
+// Soft-thresholding function
+arma::vec softthreshold(const arma::vec& z, double threshold) {
+  return arma::sign(z) % arma::max(arma::abs(z) - threshold, arma::zeros(z.n_elem));
+}
+
+// Objective function f
+double f(const arma::vec& z, const arma::mat& x, const arma::vec& y, 
+         const arma::vec& beta_point, double lamb) {
+  arma::vec xz = x * z;
+  return accu(log(1 + exp(xz)) - y % xz) + accu(square(beta_point - z)) / (2 * lamb);
+}
+
+// Gradient of f
+arma::vec gradf(const arma::vec& z, const arma::mat& x, const arma::vec& y, 
+                const arma::vec& beta_point, double lamb) {
+  arma::vec xz = x * z;
+  arma::vec sigmoid = 1 / (1 + exp(-xz));
+  return x.t() * (sigmoid - y) + (beta_point - z) / lamb;
+}
+
+// Function g
+double g(const arma::vec& z, double alpha) {
+  return alpha * accu(abs(z));
+}
+
+// Proximal operator for g
+arma::vec proxg(const arma::vec& z, double tau_fasta, double alpha) {
+  return softthreshold(z, alpha * tau_fasta);
+}
 
 // [[Rcpp::export]]
-List optimized_algorithm(
-    Function f, Function gradf, Function g, Function proxg,
-    arma::vec x0, double tau1, int max_iters = 100, int w = 10,
-    bool backtrack = true, bool recordIterates = false, double stepsizeShrink = 0.5,
-    double eps_n = 1e-15
-) {
-  arma::vec residual(max_iters, arma::fill::zeros);
-  arma::vec normalizedResid(max_iters, arma::fill::zeros);
-  arma::vec taus(max_iters, arma::fill::zeros);
-  arma::vec fVals(max_iters, arma::fill::zeros);
-  arma::vec objective(max_iters + 1, arma::fill::zeros);
+List rcpp_fasta(const arma::mat& x, const arma::vec& y, 
+                arma::vec x0, const arma::vec& beta_point, 
+                double alpha, double lamb, double tau1, 
+                int max_iters = 100, int w = 10, bool backtrack = true, 
+                bool recordIterates = false, double stepsizeShrink = 0.5, 
+                double eps_n = 1e-15) {
   
-  int totalBacktracks = 0, backtrackCount = 0;
-  arma::vec x1 = x0;
-  arma::vec d1 = x1;
-  
-  double f1 = as<double>(f(d1));
-  fVals(0) = f1;
-  arma::vec gradf1 = as<arma::vec>(gradf(d1));
-  
+  int n = x0.n_elem;
+  arma::vec residual(max_iters, fill::zeros);
+  arma::vec normalizedResid(max_iters, fill::zeros);
+  arma::vec taus(max_iters, fill::zeros);
+  arma::vec fVals(max_iters, fill::zeros);
+  arma::vec objective(max_iters + 1, fill::zeros);
   arma::mat iterates;
+  
   if (recordIterates) {
-    iterates = arma::mat(x0.n_elem, max_iters + 1, arma::fill::zeros);
-    iterates.col(0) = x1;
+    iterates = arma::mat(n, max_iters + 1, fill::zeros);
+    iterates.col(0) = x0;
   }
   
-  double maxResidual = -arma::datum::inf;
-  double minObjectiveValue = arma::datum::inf;
-  objective(0) = f1 + as<double>(g(x0));
+  int totalBacktracks = 0;
+  double maxResidual = -std::numeric_limits<double>::infinity();
+  double minObjectiveValue = std::numeric_limits<double>::infinity();
   
+  arma::vec x1 = x0;
+  arma::vec d1 = x1;
+  double f1 = f(d1, x, y, beta_point, lamb);
+  fVals(0) = f1;
+  arma::vec gradf1 = gradf(d1, x, y, beta_point, lamb);
+  objective(0) = f1 + g(x0, alpha);
   arma::vec bestObjectiveIterate = x1;
   
-  for (int i = 0; i < max_iters; ++i) {
-    x0 = x1;
+  for (int i = 0; i < max_iters; i++) {
+    arma::vec x0 = x1;
     arma::vec gradf0 = gradf1;
     double tau0 = tau1;
     
     arma::vec x1hat = x0 - tau0 * gradf0;
-    x1 = as<arma::vec>(proxg(x1hat, tau0));
+    x1 = proxg(x1hat, tau0, alpha);
     arma::vec Dx = x1 - x0;
-    
     d1 = x1;
-    f1 = as<double>(f(d1));
+    f1 = f(d1, x, y, beta_point, lamb);
     
     if (backtrack) {
-      double M = fVals.subvec(std::max(i - w, 0), i - 1).max();
-      backtrackCount = 0;
+      double M = fVals.subvec(std::max(0, i - w), std::max(0, i - 1)).max();
+      int backtrackCount = 0;
+      bool prop = (f1 - 1e-12 > M + dot(Dx, gradf0) + 0.5 * norm(Dx, 2) * norm(Dx, 2) / tau0) &&
+        (backtrackCount < 20);
       
-      while ((f1 - 1e-12 > M + arma::dot(Dx, gradf0) + 0.5 * arma::norm(Dx, 2) * arma::norm(Dx, 2) / tau0) &&
-             (backtrackCount < 20)) {
+      while (prop) {
         tau0 *= stepsizeShrink;
         x1hat = x0 - tau0 * gradf0;
-        x1 = as<arma::vec>(proxg(x1hat, tau0));
+        x1 = proxg(x1hat, tau0, alpha);
         d1 = x1;
-        f1 = as<double>(f(d1));
+        f1 = f(d1, x, y, beta_point, lamb);
         Dx = x1 - x0;
         backtrackCount++;
+        prop = (f1 - 1e-12 > M + dot(Dx, gradf0) + 0.5 * norm(Dx, 2) * norm(Dx, 2) / tau0) &&
+          (backtrackCount < 20);
       }
       totalBacktracks += backtrackCount;
     }
     
     taus(i) = tau0;
-    residual(i) = arma::norm(Dx, 2) / tau0;
+    residual(i) = norm(Dx, 2) / tau0;
     maxResidual = std::max(maxResidual, residual(i));
-    
-    double normalizer = std::max(arma::norm(gradf0, 2), arma::norm(x1 - x1hat, 2) / tau0) + eps_n;
+    double normalizer = std::max(norm(gradf0, 2), norm(x1 - x1hat, 2) / tau0) + eps_n;
     normalizedResid(i) = residual(i) / normalizer;
-    
     fVals(i) = f1;
-    objective(i + 1) = f1 + as<double>(g(x1));
+    objective(i + 1) = f1 + g(x1, alpha);
     
     if (objective(i + 1) < minObjectiveValue) {
       bestObjectiveIterate = x1;
-      minObjectiveValue = std::min(minObjectiveValue, objective(i + 1));
+      minObjectiveValue = objective(i + 1);
     }
     
-    gradf1 = as<arma::vec>(gradf(d1));
+    gradf1 = gradf(d1, x, y, beta_point, lamb);
     arma::vec Dg = gradf1 + (x1hat - x0) / tau0;
-    double dotprod = arma::dot(Dx, Dg);
-    
-    if (std::abs(dotprod) < 1e-15) {
-      break;
-    }
-    
-    double tau_s = arma::dot(Dx, Dx) / dotprod;
-    double tau_m = dotprod / arma::dot(Dg, Dg);
+    double dotprod = dot(Dx, Dg);
+    double tau_s = norm(Dx, 2) * norm(Dx, 2) / dotprod;
+    double tau_m = dotprod / (norm(Dg, 2) * norm(Dg, 2));
     tau_m = std::max(tau_m, 0.0);
+    
+    if (std::abs(dotprod) < 1e-15) break;
     
     if (2 * tau_m > tau_s) {
       tau1 = tau_m;
@@ -131,13 +148,3 @@ List optimized_algorithm(
     Named("iterates") = iterates
   );
 }
-
-
-// You can include R code blocks in C++ files processed with sourceCpp
-// (useful for testing and development). The R code will be automatically 
-// run after the compilation.
-//
-
-/*** R
-timesTwo(42)
-*/
