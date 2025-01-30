@@ -1,6 +1,8 @@
 library(Rcpp)
 library(RcppArmadillo)
-sourceCpp("fasta_chatgpt.cpp")
+library(fasta)
+library(glmnet)
+sourceCpp("fasta.cpp")
 
 ### R functions   ###
 softthreshold <- function(u, pen) {       ####  u is a vector
@@ -18,19 +20,26 @@ x <- as.matrix(data[,c(1:7)])
 y <- as.matrix(ifelse(data$type == "Yes", 1, 0))
 colnames(x) <- NULL
 colnames(y) <- NULL
-alpha <- 2
+alpha <- 1
 lamb <- 2
 ###########
 
-beta_point <- rnorm(7)
+tau <- seq(0.5, 20, length = 40)
 
-dum <- fasta(f, gradf, g, proxg, x0 = rep(0,7), tau1 = 1, stepsizeShrink = .1)
-foo <- rcpp_fasta(x = x, y = y, x0 = rep(0,7), tau1 = 1,
+alpha <- 3
+
+beta_point <- rnorm(7)
+initial_step <- sample(tau, 1)
+shrink_step <- sample(seq(0.1, 0.9, length = 20), 1)
+dum <- fasta(f, gradf, g, proxg, x0 = rep(0,7), tau1 = initial_step, stepsizeShrink = shrink_step)
+foo <- rcpp_fasta(x = x, y = y, x0 = rep(0,7), tau1 = initial_step,
            beta_point = beta_point, alpha = alpha,
-           lamb = lamb, stepsizeShrink = .1)
+           lamb = lamb, stepsizeShrink = shrink_step)
 
 # checking solution
-cbind(dum$x, foo$x)
+cbind(dum$x, foo$x, dum$x-foo$x)
+
+
 
 # checking how fast
 library(rbenchmark)

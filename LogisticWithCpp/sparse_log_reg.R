@@ -10,7 +10,7 @@ library(stats)
 library(fasta)
 library(glmnet)
 library(Rcpp)
-sourceCpp("fasta_chatgpt.cpp")
+sourceCpp("fasta.cpp")
 ##############------Functions------##################################
 
 log_pi <- function(x,y,beta)
@@ -28,19 +28,20 @@ softthreshold <- function(u, pen) {       ####  u is a vector
 
 ######### Proximity mapping functions for Chaari
 
-f <- function(z) {colSums(log(1 + exp(x%*%z)) - y*(x%*%z)) + sum((beta_point - z)^2)/(2*lamb)}
-
-gradf <- function(z) {colSums(c(1/(1+exp(-x%*%z)) - y)*x) + (beta_point - z)/lamb}
-
-g <- function(z) {alpha*sum(abs(z))}
-
-proxg <- function(z, tau_fasta) {softthreshold(z, alpha*tau_fasta)}
+# f <- function(z) {colSums(log(1 + exp(x%*%z)) - y*(x%*%z)) + sum((beta_point - z)^2)/(2*lamb)}
+# 
+# gradf <- function(z) {colSums(c(1/(1+exp(-x%*%z)) - y)*x) + (beta_point - z)/lamb}
+# 
+# g <- function(z) {alpha*sum(abs(z))}
+# 
+# proxg <- function(z, tau_fasta) {softthreshold(z, alpha*tau_fasta)}
 
 ######### gradient of log target
 
-grad_logpiLam <- function(beta, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)  
+grad_logpiLam <- function(x, y, beta, lambda, alpha, fasta_start, fasta_step_start)  
 {
-  temp <- fasta(f, gradf, g, proxg, c(beta), fasta_step_start, stepsizeShrink = .1, max_iters = 50)
+  temp <- rcpp_fasta(x, y, c(fasta_start), beta, alpha, lambda, fasta_step_start)
+  #temp <- fasta(f, gradf, g, proxg, c(beta), fasta_step_start, stepsizeShrink = .1, max_iters = 50)
  # print(length(temp$objective))
   beta_prox <- temp$x
   ans <-  (beta-beta_prox)/lambda
@@ -57,18 +58,19 @@ prox_func_dur <- function(beta, lambda) {   #### input x and y as a vector
 grad_logpiLam_dur <- function(x, y, beta, lambda)  # gradient of log target for Durmus
 {
   beta_prox <- prox_func_dur(beta, lambda)
-  grad_f <- colSums(c(1/(1+exp(-x%*%beta)) - y)*x)
+  grad_f <- gradf_dur(beta, x, y)
   ans <-  grad_f + (beta-beta_prox)/lambda
   return(-ans)
 }
 
 ##### Chaari P-HMC
 
-pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fasta_step_start)
+pxhmc_chaari <- function(x, y, lambda, alpha, iter, 
+                         eps_hmc, L, start, fasta_start, fasta_step_start)
 {
   nvar <- length(start)
   samp.hmc <- matrix(0, nrow = iter, ncol = nvar)
-  lamb <<- lambda
+ # lamb <<- lambda
   
   # starting value computations
   samp <- start
@@ -81,15 +83,17 @@ pxhmc_chaari <- function(x, y, lambda, iter, eps_hmc, L, start, fasta_start, fas
   for (i in 2:iter) 
   {
     p_prop <- mom_mat[i,]
-    beta_point <<- samp
-    U_samp <- -grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
+   # beta_point <<- samp
+    U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, fasta_start, fasta_step_start)
+      #-grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
     p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
     q_current <- samp
     for (j in 1:L)
     {
       samp <- samp + eps_hmc*p_current   # full step for position
       beta_point <<- samp
-      U_samp <- -grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
+      U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, fasta_start, fasta_step_start)
+        #-grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
       if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
     }
     p_current <- p_current - eps_hmc*U_samp/2
@@ -200,15 +204,15 @@ logistic_fit <- glmnet(x, y, family = "binomial",
 beta <- logistic_fit #c(unlist(logistic_fit$coefficients[-1]))
 beta_start <- as.matrix(unname(beta))
 
-iter <- 1e2
+iter <- 5e4
 lamb_coeff <- 1e-4
-eps_px_chaari <- 0.00014
+eps_px_chaari <- 0.00009
 eps_px_dur <-  0.0019
 L_pxch <- 10
 L_pxdur <- 10
 tau <- 1
 
-system.time(pxhmc_chaari_run <- pxhmc_chaari(x, y, lambda = lamb_coeff, iter = iter,
+system.time(pxhmc_chaari_run <- pxhmc_chaari(x, y, lambda = lamb_coeff, alpha = alpha, iter = iter,
                                              eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start, 
                                              fasta_start = beta_start, fasta_step_start = tau))
 

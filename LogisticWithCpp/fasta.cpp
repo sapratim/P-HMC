@@ -23,6 +23,14 @@ arma::vec gradf(const arma::vec& z, const arma::mat& x, const arma::vec& y,
   return x.t() * (sigmoid - y) + (beta_point - z) / lamb;
 }
 
+// [[Rcpp::export]]
+// Gradient of f for Durmus
+arma::vec gradf_dur(const arma::vec& z, const arma::mat& x, const arma::vec& y) {
+  arma::vec xz = x * z;
+  arma::vec sigmoid = 1 / (1 + exp(-xz));
+  return x.t() * (sigmoid - y);
+}
+
 // Function g
 double g(const arma::vec& z, double alpha) {
   return alpha * accu(abs(z));
