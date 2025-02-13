@@ -29,11 +29,20 @@ pdf("density_plot.pdf", width = 12, height = 10)
 
 par(mfrow = c(3,3))
 for (i in 1:length(beta_start)) {
-  plot(density(output[[1]][,i]), type = 'l', col = "red", main = paste("Component", i), xlim = c(-1, 2))
+  if (i != 6) {
+  plot(density(output[[1]][,i]), type = 'l', col = "red", main = paste("Component", i))
   lines(density(output[[2]][,i]), type = 'l', col = "blue")
   abline(v = beta_start[i], col = "black")
   legend("topright", c("Chaari", "Durmus"), lty = 1,
          col = c("red", "blue"), cex = 1, bty = "n")
+  } else {
+    plot(density(output[[1]][,i]), type = 'l', col = "red", main = paste("Component", i),
+                                                                             xlim = c(-0.6, 2))
+    lines(density(output[[2]][,i]), type = 'l', col = "blue")
+    abline(v = beta_start[i], col = "black")
+    legend("topright", c("Chaari", "Durmus"), lty = 1,
+           col = c("red", "blue"), cex = 1, bty = "n")
+  }
 }
 dev.off()
 

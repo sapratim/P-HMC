@@ -83,17 +83,15 @@ pxhmc_chaari <- function(x, y, lambda, alpha, iter,
   for (i in 2:iter) 
   {
     p_prop <- mom_mat[i,]
-   # beta_point <<- samp
-    U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, fasta_start, fasta_step_start)
-      #-grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
+    beta_point <<- samp
+    U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, beta_point, fasta_step_start)
     p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
     q_current <- samp
     for (j in 1:L)
     {
       samp <- samp + eps_hmc*p_current   # full step for position
       beta_point <<- samp
-      U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, fasta_start, fasta_step_start)
-        #-grad_logpiLam(samp, lambda, f, gradf, g, proxg, fasta_start, fasta_step_start)
+      U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, beta_point, fasta_step_start)
       if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
     }
     p_current <- p_current - eps_hmc*U_samp/2
@@ -204,13 +202,13 @@ logistic_fit <- glmnet(x, y, family = "binomial",
 beta <- logistic_fit #c(unlist(logistic_fit$coefficients[-1]))
 beta_start <- as.matrix(unname(beta))
 
-iter <- 5e4
+iter <- 1e5
 lamb_coeff <- 1e-4
-eps_px_chaari <- 0.00009
+eps_px_chaari <- 13e-5
 eps_px_dur <-  0.0019
 L_pxch <- 10
 L_pxdur <- 10
-tau <- 1
+tau <- 5
 
 system.time(pxhmc_chaari_run <- pxhmc_chaari(x, y, lambda = lamb_coeff, alpha = alpha, iter = iter,
                                              eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start, 

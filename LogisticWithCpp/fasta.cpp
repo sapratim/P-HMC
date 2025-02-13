@@ -45,8 +45,8 @@ arma::vec proxg(const arma::vec& z, double tau_fasta, double alpha) {
 List rcpp_fasta(const arma::mat& x, const arma::vec& y, 
                 arma::vec x0, const arma::vec& beta_point, 
                 double alpha, double lamb, double tau1, 
-                int max_iters = 100, int w = 10, bool backtrack = true, 
-                bool recordIterates = false, double stepsizeShrink = 0.5, 
+                int max_iters = 200, int w = 10, bool backtrack = true, 
+                bool recordIterates = false, double stepsizeShrink = 0.1, 
                 double eps_n = 1e-15) {
   
   int n = x0.n_elem;
