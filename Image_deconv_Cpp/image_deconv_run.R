@@ -6,6 +6,7 @@
 library(magick)
 library(fasta)
 library(wavelets)
+library(waveslim)
 source("image_deconv_functions.R")
 
 ################  Define global variables here ################
@@ -30,28 +31,35 @@ f_freq <- function(z) {
 
 gradf_freq <- function(z) {
   H.z <- convolve_image(z, dimen, dimen, H)
-  t1 <- convolve_image((y - H.z), dimen, dimen, t(H))/sigma2
+  t1 <- convolve_image((H.z - y), dimen, dimen, t(H))/sigma2
   return(t1)  
 }
 
-freq_mode <- fasta(f_freq, gradf_freq, g, proxg, true_pixel_vec,
-                   tau1 = 1, stepsizeShrink = 0.1)
+freq_mode <- fasta(f_freq, gradf_freq, g, proxg, y, tau1 = 5)
 
 ########################  Chaari/Durmus runs  ########################
 
-pxhmc_chaari_run <- pxhmc_chaari(y = y, lambda <- 10, f, gradf, g, proxg, iter = 1e2,
-                                 eps_hmc <- 0.015, L = 10, y,
-                                 blur_pixel_vec, 3)
+system.time(pxhmc_chaari_run <- pxhmc_chaari(y = y, lambda <- 10, f, gradf, g, proxg, 
+                           iter = 1e3, eps_hmc <- 0.04, L = 10, freq_mode$x,freq_mode$x, 3))
 
-pxhmc_dur_run <- pxhmc_dur(y, lambda = 10, iter = 1e4, eps_hmc = 0.003, L = 10,
-                           start = y)
+system.time(pxhmc_dur_run <- pxhmc_dur(y, lambda = 10, iter = 1e4, eps_hmc = 0.03, L = 10,
+                           start = freq_mode$x))
 
- i <- 1
- plot(density(pxhmc_chaari_run[[1]][,i]), type = 'l')
- abline(v = freq_mode$x[i], col = "red")
- i <- i+1
+###############################  Mode matching  ###############################
+###############################   Validation    ###############################
+##############################  Run sequentially ##############################
 
-# Create Haar matrix for 128x128 image
+######  Chaari ######
 
-######  For plotting the image from matrix: image_read(as.raster(noisy_mat))
+i <- 1
+plot(density(pxhmc_chaari_run[[1]][,i]), type = 'l')
+abline(v = freq_mode$x[i], col = "red")
+i <- i+1
+
+######  Durmus ###### 
+
+i <- 1
+plot(density(pxhmc_dur_run[[1]][,i]), type = 'l')
+abline(v = freq_mode$x[i], col = "red")
+i <- i+1
 

@@ -7,7 +7,6 @@
 library(Matrix)
 library(expm)
 library(ks)
-library(magick)
 library(Rcpp)
 library(dplyr)
 sourceCpp("fasta_image_prob.cpp")
@@ -48,13 +47,13 @@ softthreshold <- function(u, pen) {       ####  u is a vector
 
 f <- function(z) {
   H.z <- convolve_image(z, dimen, dimen, H)
-  t <- sum((y - H.z)^2)/(2*sigma2) + sum((x_true - z)^2)/(2*lamb)
+  t <- sum((H.z - y)^2)/(2*sigma2) + sum((x_true - z)^2)/(2*lamb)
   return(t)  
 }
 
 gradf <- function(z) {
   H.z <- convolve_image(z, dimen, dimen, H)
-  t1 <- convolve_image((y - H.z), dimen, dimen, t(H))/sigma2
+  t1 <- convolve_image((H.z - y), dimen, dimen, t(H))/sigma2
   t2 <- (x_true - z)/lamb
   return(t1+t2)  
 }
@@ -105,7 +104,7 @@ grad_logpiLam_dur <- function(x, y, lambda)  # gradient of log target for Durmus
 {
   x_prox <- prox_func_dur(x, lambda)
   H.x <- convolve_image(x, dimen, dimen, H) 
-  ratio_term <- pmax((y - H.x)/sigma2, 0)
+  ratio_term <- pmax((H.x - y)/sigma2, 0)
   grad_f <- convolve_image(ratio_term, dimen, dimen, H) 
   ans <-  grad_f + (x-x_prox)/lambda
   return(-ans)
