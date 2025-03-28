@@ -370,7 +370,7 @@ Rcpp::List fasta_cpp(const vec& x0, double tau1, const mat& H, const vec& y,
     gradf1 = gradf(d1, dimen, H, y, sigma2, x_true, lamb);
     Dg = gradf1 + (x1hat - x0_old) / tau0;
     double dotprod = dot(Dx, Dg);
-    Rcout << "The value of Dx_Dx : " << std::abs(dotprod) << "\n";
+    //Rcout << "The value of Dx_Dx : " << std::abs(dotprod) << "\n";
     if (std::abs(dotprod) < eps_n) break;
     
     double tau_s = Dx_Dx / dotprod;
@@ -388,7 +388,8 @@ Rcpp::List fasta_cpp(const vec& x0, double tau1, const mat& H, const vec& y,
     Rcpp::Named("fVals") = fVals.subvec(0, final_iter),
     Rcpp::Named("totalBacktracks") = totalBacktracks,
     Rcpp::Named("residual") = residual.subvec(0, final_iter),
-    Rcpp::Named("taus") = taus.subvec(0, final_iter)
+    Rcpp::Named("taus") = taus.subvec(0, final_iter),
+    Rcpp::Named("iternumber") = final_iter + 1
   );
   
   if (recordIterates) result["iterates"] = iterates.cols(0, final_iter + 1);
