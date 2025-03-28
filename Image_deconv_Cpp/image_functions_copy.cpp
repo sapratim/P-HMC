@@ -348,6 +348,7 @@ Rcpp::List fasta_cpp(const vec& x0, double tau1, const mat& H, const vec& y,
         Dx_Dx = dot(Dx, Dx);
         ++backtrackCount;
       }
+      
       totalBacktracks += backtrackCount;
     }
     
@@ -369,7 +370,7 @@ Rcpp::List fasta_cpp(const vec& x0, double tau1, const mat& H, const vec& y,
     gradf1 = gradf(d1, dimen, H, y, sigma2, x_true, lamb);
     Dg = gradf1 + (x1hat - x0_old) / tau0;
     double dotprod = dot(Dx, Dg);
-    
+    Rcout << "The value of Dx_Dx : " << std::abs(dotprod) << "\n";
     if (std::abs(dotprod) < eps_n) break;
     
     double tau_s = Dx_Dx / dotprod;

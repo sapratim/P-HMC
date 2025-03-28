@@ -163,12 +163,17 @@ x_true <- freq_mode$x
 # start <- rnorm(dimen^2, x_true, sd = .1)
 # benchmark(fasta(f_R, gradf_R, g_R, proxg_R, start, 5), fasta_cpp(start, 5, H, y, h_pass, l_pass, sigma2, x_true, lamb, beta_pen, dimen), replications = 20)
 
-lamb <- 1.5
+sourceCpp("image_functions_copy.cpp")
+lamb <- .001
 x_true <- rnorm(dimen^2, y, sd = 10)
 start <- rnorm(dimen^2, x_true, sd = .01)
-u <- fasta(f_R, gradf_R, g_R, proxg_R, start, 5, recordIterates = TRUE)
+u <- my_fasta(f_R, gradf_R, g_R, proxg_R, start, 5, 
+              recordIterates = TRUE,
+              eps_n = 1e-8)
 v <- fasta_cpp(start, 5, H, y, h_pass, l_pass,
-               sigma2, x_true, lamb, beta_pen, dimen, recordIterates = TRUE)
+               sigma2, x_true, lamb, beta_pen, dimen, 
+               recordIterates = TRUE, 
+               eps_n = 1e-8)
 hist(u$x - v$x)
 (psi_R <- -log_pi(y, u$x))
 (psi_cpp <- -log_pi(y, v$x))
@@ -185,6 +190,6 @@ u$totalBacktracks
 v$totalBacktracks
 
 
-u$taus
-v$taus
+plot.ts(u$taus)
+lines(v$taus, col="red")
 
