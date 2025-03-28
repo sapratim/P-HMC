@@ -9,7 +9,12 @@ library(expm)
 library(ks)
 library(Rcpp)
 library(dplyr)
-sourceCpp("fasta_image_prob.cpp")
+library(fasta)
+library(waveslim)
+sourceCpp("image_functions_copy.cpp")
+haar_level <<- 3
+h_pass <- wave.filter("haar")$hpf
+l_pass <- wave.filter("haar")$lpf
 
 ##############################  Model is (y = Hx + w) ##############################  
 # y = Noisy image
@@ -21,19 +26,19 @@ sourceCpp("fasta_image_prob.cpp")
 
 ###################### L_1 norm Wavelet function  ######################
 
-wavelet_l1 <- function(image_vec, nlev = 3){
-  image_mat <- matrix(image_vec, dimen, dimen)
-  trans <- dwt.2d(image_mat, wf = "haar", nlev)
-  wave_sum <- sum(abs(unlist(trans)))
-  return(wave_sum)
-}
+# wavelet_l1 <- function(image_vec, nlev = 3){
+#   image_mat <- matrix(image_vec, dimen, dimen)
+#   trans <- dwt.2d(image_mat, wf = "haar", nlev)
+#   wave_sum <- sum(abs(unlist(trans)))
+#   return(wave_sum)
+# }
 
 ###################### Log of target posterior #######################
 
 log_pi <- function(y, x)   ##### input x as vector
 {
   Hx <- convolve_image(x, dimen, dimen, H) 
-  Psi.x <- wavelet_l1(x)
+  Psi.x <- wavelet_l1_cpp(x, dimen, h_pass, l_pass)
   f <- (norm(y - Hx,"2")^2)/(2*sigma2)
   g <- beta_pen*Psi.x
   return(-(f+g))
@@ -41,47 +46,49 @@ log_pi <- function(y, x)   ##### input x as vector
 
 #########  Soft threshold function
 
-softthreshold <- function(u, pen) {       ####  u is a vector
-  return(sign(u)*sapply(u, FUN=function(x) {max(abs(x)-pen,0)}))
-}
+# softthreshold <- function(u, pen) {       ####  u is a vector
+#   return(sign(u)*sapply(u, FUN=function(x) {max(abs(x)-pen,0)}))
+# }
 
-f <- function(z) {
-  H.z <- convolve_image(z, dimen, dimen, H)
-  t <- sum((H.z - y)^2)/(2*sigma2) + sum((x_true - z)^2)/(2*lamb)
-  return(t)  
-}
-
-gradf <- function(z) {
-  H.z <- convolve_image(z, dimen, dimen, H)
-  t1 <- convolve_image((H.z - y), dimen, dimen, t(H))/sigma2
-  t2 <- (x_true - z)/lamb
-  return(t1+t2)  
-}
-
-g <- function(z) {
-  Psi.z <- wavelet_l1(z)
-  t <- beta_pen*Psi.z
-  return(t)
-}
-
-proxg <- function(z, tau_fasta) {
-  z <- matrix(z, dimen, dimen)
-  wave_trans <- dwt.2d(z, wf = "haar", 3)
-  for (i in 1:(length(wave_trans)-1)) {
-    wave_trans[[i]] <- matrix(softthreshold(wave_trans[[i]],
-                                            beta_pen*tau_fasta), dimen, dimen)
-  }
-  proxval <- idwt.2d(wave_trans)
-  return(vec(proxval))
-}
-
+# f <- function(z) {
+#   H.z <- convolve_image(z, dimen, dimen, H)
+#   t <- sum((H.z - y)^2)/(2*sigma2) + sum((x_true - z)^2)/(2*lamb)
+#   return(t)
+# }
+#
+# gradf <- function(z) {
+#   H.z <- convolve_image(z, dimen, dimen, H)
+#   t1 <- convolve_image((H.z - y), dimen, dimen, t(H))/sigma2
+#   t2 <- (x_true - z)/lamb
+#   return(t1+t2)
+# }
+#
+# g <- function(z) {
+#   Psi.z <- wavelet_l1(z)
+#   t <- beta_pen*Psi.z
+#   return(t)
+# }
+#
+# proxg <- function(z, tau_fasta) {
+#   z <- matrix(z, dimen, dimen)
+#   wave_trans <- dwt.2d(z, wf = "haar", 3)
+#   for (i in 1:(length(wave_trans)-1)) {
+#     wave_trans[[i]] <- matrix(softthreshold(wave_trans[[i]],
+#                                             beta_pen*tau_fasta), dimen, dimen)
+#   }
+#   proxval <- idwt.2d(wave_trans)
+#   return(vec(proxval))
+# }
+#
 
 ######### Proximity mapping for Chaari
 
-grad_logpiLam <- function(x, f, gradf, g, proxg, fasta_start, fasta_step_start)  
+grad_logpiLam <- function(fasta_start, fasta_step_start, dimen, H, y, sigma2, 
+                          x, lambda, beta_pen)  
 {
-  temp <- fasta(f, gradf, g, proxg, fasta_start, fasta_step_start,
-                stepsizeShrink = .1, max_iters = 100)
+  #temp <- fasta_cpp(fasta_start, fasta_step_start, H, y, sigma2, x, lambda, beta_pen, dimen)
+  temp <- fasta_cpp(fasta_start, fasta_step_start, dimen, h_pass, l_pass, H, y, sigma2, 
+                    x, lambda, beta_pen, stepsizeShrink = .1)
   x_prox <- temp$x
   ans <-  (x-x_prox)/lambda
   return(-ans)
@@ -91,60 +98,39 @@ grad_logpiLam <- function(x, f, gradf, g, proxg, fasta_start, fasta_step_start)
 
 prox_func_dur <- function(x, lambda) {   #### input x 
   x <- matrix(x, dimen, dimen)
-  wave_trans <- dwt.2d(x, wf = "haar", 3)
-  for (i in 1:(length(wave_trans)-1)) {
-    wave_trans[[i]] <- matrix(softthreshold(wave_trans[[i]],
-                                            beta_pen*lambda), dimen, dimen)
+    wave_trans <- dwt.2d(x, wf = "haar", 3)
+    for (i in 1:(length(wave_trans)-1)) {
+      wave_trans[[i]] <- matrix(softthreshold(wave_trans[[i]],
+                                              beta_pen*lambda), dimen, dimen)
+    }
+    proxval <- idwt.2d(wave_trans)
+    return(vec(proxval))
   }
-  proxval <- idwt.2d(wave_trans)
-  return(vec(proxval))
-}
 
 grad_logpiLam_dur <- function(x, y, lambda)  # gradient of log target for Durmus
 {
   x_prox <- prox_func_dur(x, lambda)
   H.x <- convolve_image(x, dimen, dimen, H) 
-  ratio_term <- pmax((H.x - y)/sigma2, 0)
-  grad_f <- convolve_image(ratio_term, dimen, dimen, H) 
+  ratio_term <- (H.x - y)
+  grad_f <- convolve_image(ratio_term, dimen, dimen, H)/sigma2 
   ans <-  grad_f + (x-x_prox)/lambda
   return(-ans)
 }
+
+############################  Blurring matrix ############################
 
 blur_func <- function(blur_size){
   mat <- matrix(rep(1/blur_size^2, blur_size^2), nrow = blur_size, ncol = blur_size)
   return(mat)
 }
 
-# Function to generate the Haar matrix for a given size (e.g., 128x128)
-haar_matrix <- function(n) {
-  # Initialize the Haar matrix as an identity matrix
-  H <- diag(1, n)
-  
-  # Apply Haar transform recursively (log2(n) levels)
-  for (level in 1:log2(n)) {
-    # Size of the block
-    block_size <- 2^level
-    half_block_size <- block_size / 2
-    
-    # Loop through the matrix
-    for (i in seq(1, n, by = block_size)) {
-      for (j in i:(i + half_block_size - 1)) {
-        # Low-pass (1) and high-pass (-1) coefficients
-        H[j, i:(i + block_size - 1)] <- c(rep(1/sqrt(2), half_block_size), rep(-1/sqrt(2), half_block_size))
-      }
-    }
-  }
-  return(H)
-}
-
 ######################################## Chaari #########################################
 
-pxhmc_chaari <- function(y, lambda, f, gradf, g, proxg, iter, 
+pxhmc_chaari <- function(y, lambda, iter, 
                          eps_hmc, L, start, fasta_start, fasta_step_start)
 {
   nvar <- length(start)
   samp.hmc <- matrix(0, nrow = iter, ncol = nvar)
-  lamb <<- lambda
   
   # starting value computations
   samp <- start
@@ -157,15 +143,17 @@ pxhmc_chaari <- function(y, lambda, f, gradf, g, proxg, iter,
   for (i in 2:iter) 
   {
     p_prop <- mom_mat[i,]
-    x_true <<- samp
-    U_samp <- -grad_logpiLam(samp, f, gradf, g, proxg, x_true, fasta_step_start)
+   # x_true <<- samp
+    U_samp <- -grad_logpiLam(fasta_start = samp, fasta_step_start, dimen, H, y, sigma2, 
+                             samp, lambda, beta_pen)
     p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
     q_current <- samp
     for (j in 1:L)
     {
       samp <- samp + eps_hmc*p_current   # full step for position
-      x_true <<- samp
-      U_samp <- -grad_logpiLam(samp, f, gradf, g, proxg, x_true, fasta_step_start)
+      #x_true <<- samp
+      U_samp <- -grad_logpiLam(fasta_start = samp, fasta_step_start, dimen, H, y, sigma2, 
+                               samp, lambda, beta_pen)
       if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
     }
     p_current <- p_current - eps_hmc*U_samp/2
@@ -252,3 +240,39 @@ pxhmc_dur <- function(y, lambda, iter, eps_hmc, L, start)
   object <- list(samp.hmc, acc_rate)
   return(object)
 }
+
+
+rwm_alg <- function(y, start, iter, h)
+{
+  nvar <- length(start)
+  samp.rwm <- matrix(0, nrow = iter, ncol = nvar)
+  
+  # starting value computations
+  samp <- start
+  samp.rwm[1,] <- samp
+
+  # count number of acceptances
+  accept <- 0        
+  gaussian_mat <- matrix(rnorm((iter-1)*nvar), nrow = (iter-1), ncol = nvar)
+  
+  for (i in 2:iter) 
+  {
+    propval <- samp.rwm[i-1,] + h*gaussian_mat[i-1,]
+    log_ratio <- log_pi(y, propval) - log_pi(y, samp.rwm[i-1,])
+    if(log(runif(1)) < log_ratio)
+    {
+      samp.rwm[i,] <- propval
+      accept <- accept + 1
+    } else{
+    samp.rwm[i,] <- samp.rwm[i-1,]
+    }
+    if(i %% (iter/10) == 0){
+      j <- accept/iter
+      print(cat(i, j))}
+  }
+  print(accept/iter)
+  return(samp.rwm)
+}
+
+
+
