@@ -40,10 +40,16 @@ softthreshold <- function(u, pen) {       ####  u is a vector
 
 grad_logpiLam <- function(x, y, beta, lambda, alpha, fasta_start, fasta_step_start)  
 {
-  temp <- rcpp_fasta(x, y, c(fasta_start), beta, alpha, lambda, fasta_step_start)
-  #temp <- fasta(f, gradf, g, proxg, c(beta), fasta_step_start, stepsizeShrink = .1, max_iters = 50)
- # print(length(temp$objective))
-  beta_prox <- temp$x
+  temp_mode <- rcpp_fasta(x = x, y = y, x0 = freq_mode,
+                          beta_point = beta, alpha = alpha,
+                          lamb = lambda, tau1 = fasta_step_start)
+  temp_curr <- rcpp_fasta(x, y, c(fasta_start), beta, alpha, lambda, fasta_step_start)
+  if(min(temp_curr$objective) <= min(temp_mode$objective)){
+    beta_prox <- temp_curr$x
+  }
+  else{
+    beta_prox <- temp_mode$x
+  }
   ans <-  (beta-beta_prox)/lambda
   return(-ans)
 }
@@ -181,6 +187,39 @@ pxhmc_dur <- function(x, y, lambda, iter, eps_hmc, L, start)
 }
 
 
+rwm_alg <- function(y, start, iter, h)
+{
+  nvar <- length(start)
+  samp.rwm <- matrix(0, nrow = iter, ncol = nvar)
+  
+  # starting value computations
+  samp <- start
+  samp.rwm[1,] <- samp
+  
+  # count number of acceptances
+  accept <- 0        
+  gaussian_mat <- matrix(rnorm((iter-1)*nvar), nrow = (iter-1), ncol = nvar)
+  
+  for (i in 2:iter) 
+  {
+    propval <- samp.rwm[i-1,] + h*gaussian_mat[i-1,]
+    log_ratio <- log_pi(x, y, propval) - log_pi(x, y, samp.rwm[i-1,])
+    if(log(runif(1)) < log_ratio)
+    {
+      samp.rwm[i,] <- propval
+      accept <- accept + 1
+    } else{
+      samp.rwm[i,] <- samp.rwm[i-1,]
+    }
+    if(i %% (iter/10) == 0){
+      j <- accept/iter
+      print(cat(i, j))}
+  }
+  print(accept/iter)
+  return(samp.rwm)
+}
+
+
 #######################################################################################
 ########################## Sparse logistic regression run #############################
 #######################################################################################
@@ -201,9 +240,10 @@ logistic_fit <- glmnet(x, y, family = "binomial",
   
 beta <- logistic_fit #c(unlist(logistic_fit$coefficients[-1]))
 beta_start <- as.matrix(unname(beta))
+freq_mode <<- beta_start 
 
-iter <- 1e5
-lamb_coeff <- 1e-4
+iter <- 1e3
+lamb_coeff <- 1e-1
 eps_px_chaari <- 13e-5
 eps_px_dur <-  0.0019
 L_pxch <- 10
@@ -221,38 +261,3 @@ output <- list(pxhmc_chaari_run[[1]], pxhmc_dur_run[[1]])
 
 save(output, file = "chains.Rdata")
 
-# i <- 1
-# plot(density(pxhmc_dur_run[[1]][,i]))
-# abline(v=colMeans(pxhmc_dur_run[[1]])[i], col = "red")
-# i <- i+1
-# 
-# library(SimTools)
-# cbind(colMeans(pxhmc_chaari_run[[1]]), colMeans(pxhmc_dur_run[[1]]))
-# plot(as.Smcmc(pxhmc_chaari_run[[1]]), which = 1:4)
-# plot(as.Smcmc(pxhmc_dur_run[[1]]), which = 5:7)
-# 
-# dim <- length(beta_start)
-# rand <- 1:dim
-# 
-# pdf("sparse_log_reg_acf.pdf", height = 6, width = 6)
-# 
-# lag.max <- 100
-# acf_chaari_hmc <- acf(pxhmc_chaari_run[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
-# acf_dur_hmc <- acf(pxhmc_dur_run[[1]][,rand[1]], plot = FALSE, lag.max = lag.max)$acf
-# 
-# diff.acf <- matrix(0, ncol = dim, nrow = lag.max + 1)
-# diff.acf[,1] <- acf_dur_hmc - acf_chaari_hmc
-# 
-# for (i in 2:dim) 
-# {
-#   acf_chaari_hmc <- acf(pxhmc_chaari_run[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
-#   acf_dur_hmc <- acf(pxhmc_dur_run[[1]][,rand[i]], plot = FALSE, lag.max = lag.max)$acf
-#   diff.acf[,i] <- acf_dur_hmc - acf_chaari_hmc
-# }
-# 
-# # Make boxplot of ACFs
-# boxplot(t(diff.acf),
-#         xlab = "Lags", col = "pink",
-#         ylab = "Difference in ACFs of HMCs",ylim = range(diff.acf),
-#         names = 0:lag.max, show.names = TRUE, range = 3)
-# dev.off()

@@ -37,18 +37,26 @@ beta_start <- as.matrix(unname(beta))
 
 
 lamb <- 1e-2
-rand <- sample(c(1:5e4), 1)
-beta_point <- output[[1]][rand,]
+beta_point <- rnorm(length(beta_start), beta_start, 10)
+start_val <- beta_point
 alpha <- 2
-stepshrink <- 0.1
 
-dum <- fasta(f, gradf, g, proxg, x0 = beta_point, tau1 = 5, stepsizeShrink = stepshrink)
-foo <- rcpp_fasta(x = x, y = y, x0 = beta_point,
+dum_curr <- fasta(f, gradf, g, proxg, x0 = start_val, tau1 = 5)
+dum_mode <- fasta(f, gradf, g, proxg, x0 = c(beta_start), tau1 = 5)
+foo_curr <- rcpp_fasta(x = x, y = y, x0 = start_val,
            beta_point = beta_point, alpha = alpha,
-           lamb = lamb, tau1 = 5, stepsizeShrink = stepshrink)
-
+           lamb = lamb, tau1 = 5)
+foo_mode <- rcpp_fasta(x = x, y = y, x0 = c(beta_start),
+                  beta_point = beta_point, alpha = alpha,
+                  lamb = lamb, tau1 = 5)
+proxval_R <- `if`(min(dum_curr$objective) <= min(dum_mode$objective), dum_curr$x, dum_mode$x)
+proxval_cpp <- `if`(min(foo_curr$objective) <= min(foo_mode$objective), foo_curr$x, foo_mode$x)
 # checking solution
-cbind(dum$x, foo$x, dum$x-foo$x, beta_start)
+cbind(proxval_R, proxval_cpp, proxval_R - proxval_cpp, beta_point, beta_start)
+
+
+plot(dum$objective, type = "l")
+lines(foo$objective, col = "red")
 
 ##########################################################################################
 ##########################################################################################
