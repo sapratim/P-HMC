@@ -66,7 +66,7 @@ grad_logpiLam_dur <- function(x, y, beta, lambda)  # gradient of log target for 
   return(-ans)
 }
 
-##### Chaari P-HMC
+##############  Chaari P-HMC  #################################### 
 
 pxhmc_chaari <- function(x, y, lambda, alpha, iter, 
                          eps_hmc, L, start, fasta_start, fasta_step_start)
@@ -207,13 +207,13 @@ beta_start <- as.matrix(unname(beta))
 freq_mode <<- beta_start
 
 
- eps_px_chaari <- 13e-5
-  L_pxch <- 10
-  iter <- 1e4
-  lamb_coeff <- 10^seq(-7, 20, by = 1)
-  eps_px_dur <-  0.0019
-  L_pxdur <- 10
-  tau <- 5
+
+L_pxch <- 10
+iter <- 1e4
+lamb_coeff <- 10^seq(-7, 20, by = 1)
+eps_px_dur <-  0.0019
+L_pxdur <- 10
+tau <- 5
 
 mcse_multi_chaari <- numeric(length = length(lamb_coeff))
 mcse_multi_dur <- numeric(length = length(lamb_coeff))
@@ -222,20 +222,86 @@ ess_mat_dur <- matrix(0, nrow = length(lamb_coeff), ncol = length(beta_start))
 acc_chaari <- numeric(length = length(lamb_coeff))
 acc_dur <- numeric(length = length(lamb_coeff))
 
-for(i in 1:length(lamb_coeff)){
-  system.time(pxhmc_chaari_run <- pxhmc_chaari(x, y, lambda = lamb_coeff[i], alpha = alpha, iter = iter,
-                                               eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start,
-                                               fasta_start = beta_start, fasta_step_start = tau))
+# for(i in 1:length(lamb_coeff)){
+i <- 1
+
+
+####################################
+# checking the hamiltonian
+####################################
+## Durmus
+Leap_Durmus <- function(samp, p_prop, eps_hmc, L, lambda)
+{
+  U_samp <- -grad_logpiLam_dur(x, y, samp, lambda)
+  p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
+  q_current <- samp
+  for (j in 1:L)
+  {
+    samp <- samp + eps_hmc*p_current   # full step for position
+    U_samp <- -grad_logpiLam_dur(x, y, samp, lambda)
+    if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
+  }
+  p_current <- p_current - eps_hmc*U_samp/2
+  p_current <- - p_current  # negation to make proposal symmetric
   
-  system.time(pxhmc_dur_run <- pxhmc_dur(x, y, lambda = lamb_coeff[i], iter = iter, 
-                                         eps_hmc = eps_px_dur, L=L_pxdur, start = beta_start))
-  mcse_multi_chaari[i] <- multiESS(pxhmc_chaari_run[[1]])
-  mcse_multi_dur[i] <- multiESS(pxhmc_dur_run[[1]])
-  acc_chaari[i] <- pxhmc_chaari_run[[2]]
-  ess_mat_chaari[i,] <- ess(pxhmc_chaari_run[[1]])
-  ess_mat_dur[i,] <- ess(pxhmc_dur_run[[1]])
-  acc_dur[i] <- pxhmc_dur_run[[2]]
+  potential <- log_pi(x, y, samp)
+  return(potential)
 }
+
+## Chaari
+Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
+{
+  beta_point <<- samp
+  U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, beta_point, fasta_step_start)
+  p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
+  q_current <- samp
+  for (j in 1:L)
+  {
+    samp <- samp + eps_hmc*p_current   # full step for position
+    beta_point <<- samp
+    U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, beta_point, fasta_step_start)
+    if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
+  }
+  p_current <- p_current - eps_hmc*U_samp/2
+  p_current <- - p_current  # negation to make proposal symmetric
+  
+  potential <- log_pi(x, y, samp)
+  return(potential)
+}
+
+p_prop <- rnorm(length(samp))
+
+
+lambda <- 100
+samp <- rnorm(dim(x)[2])
+log_pi(x, y, samp)
+Leap_Durmus(samp, p_prop, eps_hmc = 1e-4, L = 10, lambda = 1e-6)
+Leap_Durmus(samp, p_prop, eps_hmc = 1e-4, L = 10, lambda = 1e1)
+Leap_Chaari(samp, p_prop, eps_hmc = 1e-4, L = 10, lambda = 1e-6)
+Leap_Chaari(samp, p_prop, eps_hmc = 1e-4, L = 10, lambda = 2)
+
+
+eps_px_chaari <- 1e-5
+system.time(pxhmc_chaari_run <- pxhmc_chaari(x, y, lambda = .001, alpha = alpha, iter = iter,
+                                             eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start,
+                                             fasta_start = beta_start, fasta_step_start = tau))
+
+eps_px_chaari <- 1e-5
+system.time(pxhmc_chaari_run_alt <- pxhmc_chaari_alt(x, y, lambda = .001, alpha = alpha, iter = 1e2,
+                                             eps_hmc = eps_px_chaari, L=L_pxch, start = beta_start,
+                                             fasta_start = beta_start, fasta_step_start = tau))
+
+system.time(pxhmc_dur_run <- pxhmc_dur(x, y, lambda = lamb_coeff[i], iter = iter, 
+                                       eps_hmc = eps_px_dur, L=L_pxdur, start = beta_start))
+
+mcse_multi_chaari[i] <- multiESS(pxhmc_chaari_run[[1]])
+mcse_multi_dur[i] <- multiESS(pxhmc_dur_run[[1]])
+acc_chaari[i] <- pxhmc_chaari_run[[2]]
+ess_mat_chaari[i,] <- ess(pxhmc_chaari_run[[1]])
+ess_mat_dur[i,] <- ess(pxhmc_dur_run[[1]])
+acc_dur[i] <- pxhmc_dur_run[[2]]
+# }
+
 
 out <- list(mcse_multi_chaari, mcse_multi_dur, 
             acc_chaari, acc_dur, ess_mat_chaari, ess_mat_dur)
