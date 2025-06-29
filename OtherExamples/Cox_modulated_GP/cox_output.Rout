@@ -1,0 +1,263 @@
+
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ##########################################
+> ## Code for reproducing the results from
+> ## the Cox processes example
+> ##########################################
+> load("cox-data.RData")
+> load("output_Cox.RData")
+> 
+> 
+> ns <- xn[[1]]
+> xs <- xn[[2]] #generated data
+> m <- xn[[6]] #number of observations
+> t <- xn[[4]] #grid
+> 
+> 
+> N <- 1e6
+> reps <- length(output_cox)
+> 
+> 
+> #To store outputs
+> bf_loops_avg <- numeric(reps)
+> bf_loops_max <- numeric(reps)
+> bf_MultiESS <- numeric(reps)
+> bf_time <- numeric(reps)
+> bf_ess <- matrix(nrow = reps, ncol = m)
+> 
+> mh_MultiESS <- numeric(reps)
+> mh_time <- numeric(reps)
+> mh_ess <- matrix(nrow = reps, ncol = m)
+> 
+> 
+> for(i in 1:reps)
++ {
++   foo <- output_cox[[i]]
++   
++   bf_time[i] <- foo[[1]]
++   mh_time[i] <- foo[[2]]
++   bf_loops_avg[i] <- foo[[3]]
++   bf_loops_max[i] <- foo[[4]]
++   bf_MultiESS[i] <- foo[[5]]
++   mh_MultiESS[i] <- foo[[6]]
++   bf_ess[i, ] <- foo[[7]]
++   mh_ess[i, ] <- foo[[8]]
++ }
+> 
+> print(paste("Average number of mean loops: ", round(mean(bf_loops_avg), 4)))
+[1] "Average number of mean loops:  18.3927"
+> print(paste("Average number of max loops for: ", round(mean(bf_loops_max), 4)))
+[1] "Average number of max loops for:  2426.57"
+> 
+> bf_mESS_per_unit_time <- bf_MultiESS/bf_time
+> mh_mESS_per_unit_time <- mh_MultiESS/mh_time
+> 
+> Multi_ESS_df <- data.frame(
++   Method = c("Bernoulli Factory", "Metropolis Hastings"),
++   MultiESS = c(round(mean(bf_MultiESS), 0), round(mean(mh_MultiESS), 0)),
++   MultiESS_by_time = c(round(mean(bf_mESS_per_unit_time), 4), round(mean(mh_mESS_per_unit_time), 4)),
++   Avg_compute_time = c(round(mean(bf_time), 0), round(mean(mh_time), 0))
++ )
+> 
+> print(Multi_ESS_df)
+               Method MultiESS MultiESS_by_time Avg_compute_time
+1   Bernoulli Factory      827           0.2776             3097
+2 Metropolis Hastings     1345           0.0610            22435
+> 
+> avg_ess_bf <- round(colMeans(bf_ess), 0)
+> avg_ess_mh <- round(colMeans(mh_ess), 0)
+> 
+> ESS_df <- data.frame(
++   Method = c("Component 1", "Component 2", "Component 3", "Component 4", "Component 5", "Component 6", 
++              "Component 7", "Component 8", "Component 9", "Component 10"),
++   Bernoulli_ESS = avg_ess_bf,
++   Auxiliary_ESS = avg_ess_mh
++ )
+> 
+> print(ESS_df)
+          Method Bernoulli_ESS Auxiliary_ESS
+1    Component 1            79           139
+2    Component 2            99           179
+3    Component 3           104           177
+4    Component 4           114           209
+5    Component 5           139           250
+6    Component 6           135           241
+7    Component 7           126           220
+8    Component 8           105           194
+9    Component 9           125           208
+10  Component 10           122           224
+11   Component 1           148           261
+12   Component 2           154           269
+13   Component 3           145           259
+14   Component 4           127           225
+15   Component 5           114           198
+16   Component 6           129           219
+17   Component 7           149           261
+18   Component 8           124           220
+19   Component 9           147           260
+20  Component 10           187           332
+21   Component 1           247           430
+22   Component 2           243           429
+23   Component 3           168           282
+24   Component 4           165           294
+25   Component 5           147           260
+26   Component 6           147           263
+27   Component 7           137           246
+28   Component 8           172           299
+29   Component 9           406           739
+30  Component 10           183           349
+31   Component 1           175           306
+32   Component 2           198           369
+33   Component 3           198           373
+34   Component 4           138           275
+35   Component 5            91           166
+36   Component 6           100           179
+37   Component 7           144           263
+38   Component 8           125           225
+39   Component 9           144           260
+40  Component 10           181           335
+41   Component 1           147           243
+42   Component 2           213           361
+43   Component 3           196           332
+44   Component 4           135           222
+45   Component 5           149           271
+46   Component 6           186           322
+47   Component 7           212           373
+48   Component 8           168           305
+49   Component 9           144           267
+50  Component 10           121           209
+51   Component 1           175           317
+52   Component 2           193           353
+53   Component 3           143           266
+54   Component 4           176           303
+55   Component 5           233           430
+56   Component 6           153           265
+57   Component 7           138           234
+58   Component 8           190           346
+59   Component 9           118           210
+60  Component 10           124           221
+61   Component 1           178           335
+62   Component 2           163           283
+63   Component 3           157           288
+64   Component 4           218           379
+65   Component 5           195           363
+66   Component 6           133           228
+67   Component 7           167           301
+68   Component 8           271           455
+69   Component 9           179           309
+70  Component 10           203           364
+71   Component 1           311           589
+72   Component 2           225           402
+73   Component 3           372           679
+74   Component 4           279           510
+75   Component 5           177           337
+76   Component 6           247           467
+77   Component 7           262           468
+78   Component 8           224           404
+79   Component 9           194           344
+80  Component 10           324           555
+81   Component 1           268           486
+82   Component 2           377           701
+83   Component 3           557          1002
+84   Component 4           405           729
+85   Component 5           475           883
+86   Component 6           496           872
+87   Component 7           367           658
+88   Component 8           422           790
+89   Component 9           705          1307
+90  Component 10           753          1223
+91   Component 1           724          1282
+92   Component 2           724          1251
+93   Component 3           707          1233
+94   Component 4           716          1226
+95   Component 5           729          1272
+96   Component 6           713          1291
+97   Component 7           732          1221
+98   Component 8           711          1261
+99   Component 9           701          1298
+100 Component 10           273           478
+> 
+> ##########################################
+> # Single chain output (plots)
+> ##########################################
+> 
+> source("cox_functions.R")
+Warning message:
+package ‘TruncatedNormal’ was built under R version 4.3.3 
+> load("output_cox_single_run.RData")
+> #PLOTS
+> delta_m <- 50/(m-1)
+> grid <- seq(0, 50, length = 100)
+> est_fun1 <- numeric(length = length(grid))
+> est_fun2 <- numeric(length = length(grid))
+> bf_samps <- bf_chain[[1]]
+> mh_samps <- mh_chain[[1]]
+> 
+> #log posterior
+> log_post_bf <- bf_chain[[4]]
+> log_post_mh <- mh_chain[[3]]
+> #Estimated density using exact proposal
+> # for(k in 1:length(grid))
+> # {
+> #   track <- 0
+> #   for(i in 1:N)
+> #   {
+> #     track <- track + smooth(delta_m, t, bf_samps[i, ], grid[k])
+> #   }
+> #   est_fun1[k] <- track/N
+> # }
+> # 
+> # #Estimated density using approximate proposal
+> # for(k in 1:length(grid))
+> # {
+> #   track <- 0
+> #   for(i in 1:N)
+> #   {
+> #     track <- track + smooth(delta_m, t, mh_samps[i, ], grid[k])
+> #   }
+> #   est_fun2[k] <- track/N
+> # }
+> 
+> #True density
+> temp <- seq(0, 50, length = 1e4)
+> y_temp <- (lam1(temp))
+> 
+> 
+> # pdf("plots/cox-est-density.pdf")
+> # plot(grid, est_fun1, type = 'l', col = "blue", xlim = c(0, 50), ylim = c(0, 3), ylab = "Density", xlab = "Grid")
+> # lines(grid, est_fun2, type = 'l', col = "orange")
+> # lines(temp, y_temp, lwd = '1.5', col = "black")
+> # points(x = unlist(xs, use.names = FALSE), y = rep(0, sum(ns)), pch = 16)
+> # legend("topright", legend = c("Truth", "Bernoulli factory", "Approximate Metropolis-Hastings"),
+> #      col = c("black", "blue", "orange"), cex = 1.5, lty = 1, lwd = 1.5, bty = "n")
+> # dev.off()
+> 
+> pdf("plots/cox-component-density.pdf")
+> j <- 100
+> plot(density(bf_samps[-c(1:1000), j]), col = "blue", ylab = "Estimated Density", xlab = "x", main = "")
+> lines(density(mh_samps[-c(1:1000), j]), col = "red")
+> legend("topright", legend = c("Bernoulli factory", "Metropolis-Hastings"), col = c("blue", "red"), cex = 1.2, lty = 1, lwd = 2, bty = "n")
+> dev.off()
+null device 
+          1 
+> 
+> proc.time()
+   user  system elapsed 
+  1.768   0.170   2.019 

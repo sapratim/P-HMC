@@ -1,0 +1,82 @@
+
+R version 4.4.0 (2024-04-24) -- "Puppy Cup"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> set.seed(1)
+> source("cox_functions.R")
+> load("estimated-cov.RData")
+> load("cox-data.RData")
+> 
+> ns <- xn[[1]]
+> x <- xn[[2]]
+> c <- xn[[3]]
+> t <- xn[[4]]
+> cov <- xn[[5]]
+> m <- xn[[6]]
+> delta_m <- xn[[7]]
+> N0 <- xn[[8]]
+> mu <- xn[[9]]
+> 
+> 
+> #The posterior
+> cov.svd <- svd(cov)
+> sqrt.cov <- cov.svd$u %*% diag(cov.svd$d^(1/2), m) %*% t(cov.svd$v)
+> max(cov - sqrt.cov %*% sqrt.cov)
+[1] 4.614651e-15
+> inv.cov <- qr.solve(cov)
+> 
+> #Running MCMC using exact proposal
+> N <- 1e6
+> 
+> eta_bf <- 0.004 #step size
+> bf_chain <- cox_bf(N, init = rep(1,  m), ns = ns, x, c, t, cov, eta_bf)
+[1] 100000
+[1] 200000
+[1] 300000
+[1] 400000
+[1] 500000
+[1] 600000
+[1] 700000
+[1] 800000
+[1] 900000
+[1] 1000000
+> bf_chain[[3]]
+[1] 0.150864
+> 
+> eta_mh <- 0.005
+> mh_chain <- cox_mh(N, init = rep(1, m), ns = ns, x, c, t, cov, eta_mh)
+[1] 100000
+[1] 200000
+[1] 300000
+[1] 400000
+[1] 500000
+[1] 600000
+[1] 700000
+[1] 800000
+[1] 900000
+[1] 1000000
+> mh_chain[[2]]
+[1] 0.219471
+> 
+> save(bf_chain, mh_chain, file = "output_cox_single_run.RData")
+> 
+> 
+> 
+> proc.time()
+    user   system  elapsed 
+95072.20   131.44 95206.13 
