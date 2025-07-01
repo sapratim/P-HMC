@@ -1,0 +1,79 @@
+
+R version 4.4.2 (2024-10-31) -- "Pile of Leaves"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> ##########################################
+> # Single run of the Nuclear Norm Example
+> ##########################################
+> library(Rcpp)
+> library(RcppArmadillo)
+> 
+> set.seed(1)
+> source("nn_data.R")
+> #source("nuclear_norm_functions.R")
+> sourceCpp("nn_functions.cpp")
+> load("warmup_chain.Rdata")
+> 
+> 
+> iter <- 1e3
+> lamb_coeff <- 1e-4
+> eps_dur <- 0.008
+> eps_px <-  0.004
+> eps <- .004
+> L <- 10
+> 
+> 
+> system.time(result_pxhmc <- pxhmc_cpp(y=y, alpha = alpha_hat, lambda = lamb_coeff, sigma2 = sigma2_hat, 
++                       iter = iter, eps_hmc = eps_px, L=L, start = warmup_end_iter) )
+Iter: 100  Accept Rate: 0.59
+Iter: 200  Accept Rate: 0.55
+Iter: 300  Accept Rate: 0.586667
+Iter: 400  Accept Rate: 0.6075
+Iter: 500  Accept Rate: 0.596
+Iter: 600  Accept Rate: 0.601667
+Iter: 700  Accept Rate: 0.604286
+Iter: 800  Accept Rate: 0.57875
+Iter: 900  Accept Rate: 0.571111
+Final Acceptance Rate: 0.585
+   user  system elapsed 
+ 16.098   0.094  16.261 
+> 
+> system.time(result_durhmc <- durhmc_cpp(y=y, alpha = alpha_hat,lambda = lamb_coeff, sigma2 = sigma2_hat, 
++                       iter = iter, eps_hmc = eps_dur, L=L, start = warmup_end_iter) )
+Iter: 100  Accept Rate: 0.63
+Iter: 200  Accept Rate: 0.605
+Iter: 300  Accept Rate: 0.636667
+Iter: 400  Accept Rate: 0.6325
+Iter: 500  Accept Rate: 0.616
+Iter: 600  Accept Rate: 0.61
+Iter: 700  Accept Rate: 0.608571
+Iter: 800  Accept Rate: 0.62125
+Iter: 900  Accept Rate: 0.61
+Final Acceptance Rate: 0.609
+   user  system elapsed 
+ 16.169   0.090  16.274 
+> 
+> output_single_hmc <- list(result_durhmc[[1]], result_pxhmc[[1]])
+> 
+> save(output_single_hmc, eps_dur, eps_px, L, lamb_coeff, file = "single_run.Rdata")
+> 
+> 
+> proc.time()
+   user  system elapsed 
+ 38.423   0.546  39.599 

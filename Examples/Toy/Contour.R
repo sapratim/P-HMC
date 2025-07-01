@@ -22,6 +22,53 @@ grad_log_pi_px <- function(x, lambda)
   prox <- sign(z)* pmax(abs(z) - foo, 0)
   -(x - prox)/lambda
 }
+##################################
+# Testing
+
+logpi_lam_dur <- function(x, lambda)
+{
+  prox <- sign(x)*pmax(abs(x) - lambda, 0)
+  my <- abs(prox) + (x - prox)^2/(2*lambda)
+  
+  logpi_lam <- - my -sum((y - x)^2)/2
+}
+
+logpi_lam_px <- function(x, lambda)
+{
+  foo <- lambda/(1 + n*lambda)
+  z <-  (x + lambda*n*mean(y))/(1 + n*lambda)
+  prox <- sign(z)* pmax(abs(z) - foo, 0)
+  
+  my <- abs(prox) + (x - prox)^2/(2*lambda) + sum((y - prox)^2)/2
+  
+  logpi_lam <- - my
+}
+
+integrate_f <- function(x){
+  sapply(x, function(t) exp(log_target(t)))
+}
+
+integrate_dur <- function(x, lambda){
+  sapply(x, function(t) exp(logpi_lam_dur(t, lambda = lambda)))
+}
+
+integrate_px <- function(x, lambda){
+  sapply(x, function(t) exp(logpi_lam_px(t, lambda = lambda)))
+}
+
+lambda <- 1
+const <- integrate(integrate_f, lower = -2, upper = 4)
+const_dur <- integrate(integrate_dur, lower = -2, upper = 4, lambda)
+const_px <- integrate(integrate_px, lower = -2, upper = 4, lambda)
+
+x.axis <- seq(-2, 3, length = 1e3)
+pi_x <- sapply(x.axis, function(x) exp(log_target(x)))/const$value
+pi_x_dur <- sapply(x.axis, function(x) exp(logpi_lam_dur(x, lambda)))/const_dur$value
+pi_x_px <- sapply(x.axis, function(x) exp(logpi_lam_px(x, lambda)))/const_px$value
+plot(x.axis, pi_x, type = 'l')
+lines(x.axis, pi_x_dur, col = "blue")
+lines(x.axis, pi_x_px, col = "red")
+
 
 ##################################
 # plotting target contour

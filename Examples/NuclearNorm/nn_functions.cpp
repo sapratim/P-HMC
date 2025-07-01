@@ -14,7 +14,7 @@ double nucl_norm(const arma::vec& vect) {
   return sum(s);
 }
 
-
+// [[Rcpp::export]]
 double log_pi(const arma::vec& x, const arma::vec& y, double sigma2, double alpha) {
   double n_norm = nucl_norm(x);
   double dens_val = alpha * n_norm + sum(square(y - x)) / (2.0 * sigma2);
