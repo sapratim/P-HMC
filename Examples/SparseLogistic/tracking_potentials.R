@@ -69,9 +69,9 @@ Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
 # tracking potentials
 
 # random place
-set.seed(1)
+set.seed(3)
 p_prop <- rnorm(dim(x)[2])
-samp <- beta_start + rnorm(dim(x)[2], 0, sd = 1)
+samp <- beta_start #+ rnorm(dim(x)[2], 0, sd = .001)
 
 
 ############################
@@ -87,15 +87,15 @@ potential <- log_pi(x, y, samp) + sum(dnorm(p_prop, log = TRUE))
 
 for(i in 1:length(lambda.seq))
 {
-  dur_state <- Leap_Durmus(samp, p_prop, eps_hmc = 1e-5, L = 1, lambda = lambda.seq[i])
-  px_state <- Leap_Chaari(samp, p_prop, eps_hmc = 1e-5, L = 1, lambda = lambda.seq[i])
+  dur_state <- Leap_Durmus(samp, p_prop, eps_hmc = 1e-7, L = 10, lambda = lambda.seq[i])
+  px_state <- Leap_Chaari(samp, p_prop, eps_hmc = 1e-7, L = 10, lambda = lambda.seq[i])
 
   dur_ham[i] <- abs(potential - dur_state)/abs(potential)
   px_ham[i] <- abs(potential - px_state)/abs(potential)
 }
 
-plot(lambda.seq, px_ham, type = 'l')
-plot(lambda.seq, dur_ham, col = "blue", type = 'l')
+plot(lambda.seq, px_ham, type = 'l', lwd = 2)
+plot(lambda.seq, dur_ham, col = "blue", lwd = 2, type = 'l')
 
 
 
