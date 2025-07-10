@@ -195,6 +195,32 @@ draw_contour(q, p, lambda = .01, eps = .01, L = 20)
 draw_contour(q, p, lambda = 1, eps = .01, L = 20)
 draw_contour(q, p, lambda = 10, eps = .01, L = 0)
 
+############################
+# Choosing lambda
+# x = 1
+q <- 1
+p <- -1
+lambda.seq <- seq(1e-3, 10, length = 1e3)
+
+dur_ham <- numeric(length = length(lambda.seq))
+px_ham <- numeric(length = length(lambda.seq))
+
+ham <- function(q, p) - log_target(q) + p^2/2
+
+for(i in 1:length(lambda.seq))
+{
+  dur_state <- dur_path(q, p, lambda.seq[i], .001, 1)[2, ]
+  px_state <- px_path(q, p, lambda.seq[i], .001, 1)[2, ]
+
+  dur_ham[i] <- abs(ham(q,p) - ham(dur_state[1], dur_state[2]))/ham(q,p)
+  px_ham[i] <- abs(ham(q,p) - ham(px_state[1], px_state[2]))/ham(q,p)
+}
+
+plot(lambda.seq, px_ham, type = 'l', ylim = range(c(dur_ham, px_ham, 0)))
+lines(lambda.seq, dur_ham, col = "blue")
+
+
+
 ###########################
 # HMC with Durmus split
 durhmc <- function(lambda, iter, eps_hmc, L, start)

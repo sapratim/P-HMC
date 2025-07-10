@@ -2,8 +2,9 @@
 ## Tracking Hamiltonians
 ######################################
 set.seed(1)
-source("blr_functions.R")
-source("pima_data.R")
+library(glmnet)
+source("slogistic_functions.R")
+source("slogistic_data.R")
 
 ### data stuff
 logistic_fit <- glmnet(x, y, family = "binomial",
@@ -71,6 +72,32 @@ Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
 set.seed(1)
 p_prop <- rnorm(dim(x)[2])
 samp <- beta_start + rnorm(dim(x)[2], 0, sd = 1)
+
+
+############################
+# Choosing lambda
+# x = 1
+lambda.seq <- seq(1e-5, .1, length = 1e2)
+
+dur_ham <- numeric(length = length(lambda.seq))
+px_ham <- numeric(length = length(lambda.seq))
+
+potential <- log_pi(x, y, samp) + sum(dnorm(p_prop, log = TRUE))
+
+
+for(i in 1:length(lambda.seq))
+{
+  dur_state <- Leap_Durmus(samp, p_prop, eps_hmc = 1e-5, L = 1, lambda = lambda.seq[i])
+  px_state <- Leap_Chaari(samp, p_prop, eps_hmc = 1e-5, L = 1, lambda = lambda.seq[i])
+
+  dur_ham[i] <- abs(potential - dur_state)/abs(potential)
+  px_ham[i] <- abs(potential - px_state)/abs(potential)
+}
+
+plot(lambda.seq, px_ham, type = 'l')
+plot(lambda.seq, dur_ham, col = "blue", type = 'l')
+
+
 
 L <- 10
 lamb.vec <- c(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10)
