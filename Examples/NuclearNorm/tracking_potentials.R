@@ -1,19 +1,15 @@
 ######################################
 ## Tracking Hamiltonians
 ######################################
+library(Rcpp)
+library(RcppArmadillo)
+
 set.seed(1)
-library(glmnet)
-source("slogistic_functions.R")
-source("slogistic_data.R")
+source("nn_data.R")
+source("nuclear_norm_functions.R")
+# sourceCpp("nn_functions.cpp")
+load("warmup_chain.Rdata")
 
-### data stuff
-logistic_fit <- glmnet(x, y, family = "binomial",
-                       alpha = 1, lambda = alpha/length(y), nlambda = 1,
-                       standardize = FALSE, intercept = FALSE)$beta
-
-beta <- logistic_fit #c(unlist(logistic_fit$coefficients[-1]))
-beta_start <- as.matrix(unname(beta))
-freq_mode <<- beta_start
 
 
 iter <- 1e4
@@ -28,40 +24,38 @@ tau <- 5
 ## Durmus
 Leap_Durmus <- function(samp, p_prop, eps_hmc, L, lambda)
 {
-  U_samp <- -grad_logpiLam_dur(x, y, samp, lambda)
+  U_samp <- -grad_log_durpiLam(samp, lambda,y,sigma2,alpha)
   p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
   q_current <- samp
   for (j in 1:L)
   {
     samp <- samp + eps_hmc*p_current   # full step for position
-    U_samp <- -grad_logpiLam_dur(x, y, samp, lambda)
+    U_samp <- -grad_log_durpiLam(samp, lambda,y,sigma2,alpha)
     if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
   }
   p_current <- p_current - eps_hmc*U_samp/2
   p_current <- - p_current  # negation to make proposal symmetric
   
-  potential <- log_pi(x, y, samp) + sum(dnorm(p_current, log = TRUE))
+  potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) + sum(dnorm(p_current, log = TRUE))
   return(potential)
 }
 
 ## Chaari
 Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
 {
-  beta_point <<- samp
-  U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, beta_point, tau)
+  U_samp <- -grad_logpiLam(samp, lambda,y,sigma2,alpha)
   p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
   q_current <- samp
   for (j in 1:L)
   {
     samp <- samp + eps_hmc*p_current   # full step for position
-    beta_point <<- samp
-    U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, beta_point, tau)
+    U_samp <- -grad_logpiLam(samp, lambda,y,sigma2,alpha)
     if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
   }
   p_current <- p_current - eps_hmc*U_samp/2
   p_current <- - p_current  # negation to make proposal symmetric
   
-  potential <- log_pi(x, y, samp) + sum(dnorm(p_current, log = TRUE))
+  potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) + sum(dnorm(p_current, log = TRUE))
   return(potential)
 }
 
@@ -70,10 +64,11 @@ Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
 
 # random place
 set.seed(3)
-p_prop <- rnorm(dim(x)[2])
-samp <- beta_start #+ rnorm(dim(x)[2], 0, sd = .001)
+p_prop <- rnorm(length(warmup_end_iter))
+samp <- warmup_end_iter #+ rnorm(dim(x)[2], 0, sd = .001)
 
-
+sigma2 = sigma2_hat
+alpha = alpha_hat
 ############################
 # Choosing lambda
 # x = 1
@@ -82,24 +77,22 @@ lambda.seq <- seq(1e-5, .1, length = 1e2)
 dur_ham <- numeric(length = length(lambda.seq))
 px_ham <- numeric(length = length(lambda.seq))
 
-potential <- log_pi(x, y, samp) + sum(dnorm(p_prop, log = TRUE))
+potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) + sum(dnorm(p_prop, log = TRUE))
 
 
 for(i in 1:length(lambda.seq))
 {
-  dur_state <- Leap_Durmus(samp, p_prop, eps_hmc = 1e-7, L = 10, lambda = lambda.seq[i])
-  px_state <- Leap_Chaari(samp, p_prop, eps_hmc = 1e-7, L = 10, lambda = lambda.seq[i])
+  print(i)
+  dur_state <- Leap_Durmus(samp, p_prop, eps_hmc = 1e-4, L = 1, lambda = lambda.seq[i])
+  px_state <- Leap_Chaari(samp, p_prop, eps_hmc = 1e-4, L = 1, lambda = lambda.seq[i])
 
   dur_ham[i] <- abs(potential - dur_state)/abs(potential)
   px_ham[i] <- abs(potential - px_state)/abs(potential)
 }
 
-pdf("lambda_slogit.pdf", height = 5, width = 8)
-par(mfrow = c(1,2))
-plot(lambda.seq, px_ham, type = 'l', lwd = 2, xlab = "Lambda", ylab = "R_lambda", main = "Chaari")
-plot(lambda.seq, dur_ham, col = "blue", lwd = 2, type = 'l', xlab = "Lambda", ylab = "R_lambda", main = "Durmus")
-abline(v = .01, lwd = 2, lty = 2)
-dev.off()
+plot(lambda.seq, px_ham, type = 'l', lwd = 2)
+plot(lambda.seq, dur_ham, col = "blue", lwd = 2, type = 'l')
+
 
 
 L <- 10

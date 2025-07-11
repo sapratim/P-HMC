@@ -216,11 +216,13 @@ for(i in 1:length(lambda.seq))
   px_ham[i] <- abs(ham(q,p) - ham(px_state[1], px_state[2]))/abs(ham(q,p) )
 }
 
-plot(lambda.seq, px_ham, type = 'l', lwd = 2, ylim = range(c(dur_ham, px_ham, 0)))
+pdf("lambda_toy.pdf", height = 5, width = 6)
+plot(lambda.seq, px_ham, type = 'l', lwd = 2, 
+  ylim = range(c(dur_ham, px_ham, 0)), xlab = "Lambda", ylab = "R_lambda")
 lines(lambda.seq, dur_ham, col = "blue", lwd = 2)
-legend("topright", c("Chaari", "Durmus"), col = c("black", "blue"), lty = 1, lwd = 2)
-
-
+legend("bottomright", c("Chaari", "Durmus", "Choice of Lambda"), col = c("black", "blue", "black"), lty = c(1,1,2), lwd = 2)
+abline(v = 1, lty = 2, lwd = 2)
+dev.off()
 ###########################
 # HMC with Durmus split
 durhmc <- function(lambda, iter, eps_hmc, L, start)
