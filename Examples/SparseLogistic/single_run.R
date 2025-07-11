@@ -7,9 +7,9 @@ library(ks)
 library(stats)
 library(fasta)
 library(glmnet)
+library(Rcpp)
 source("slogistic_data.R")
-source("slogistic_functions.R")
-
+sourceCpp("slogistic_functions.cpp")
 
 # starting values
 logistic_fit <- glmnet(x, y, family = "binomial",
@@ -23,30 +23,46 @@ freq_mode <<- beta_start
 L_ns <- 10
 L_px <- 10
 
-iter <- 1e5
-lamb_coeff <- 1e-4
-eps_px <-  0.0019
+iter <- 1e4
+eps_px <-  0.00015
 eps_ns <- 0.00014
 
-tau <- 5
 
 
-nshmc_run <- nshmc(x, y, lambda = lamb_coeff, alpha = alpha, iter = iter,
-	eps_hmc = eps_px, L = L_px, start = beta_start,
-	fasta_start = beta_start, fasta_step_start = tau)
-
-
-phmc_time <- system.time(phmc_run <- phmc(x, y, lambda = lamb_coeff, iter = iter, 
+system.time(nshmc_run <- nshmc_cpp(x, y, lambda = 1e-4, alpha = alpha, iter = iter,
 	eps_hmc = eps_px, L = L_px, start = beta_start) )
 
-rwm_time <- system.time(rwm_run <- rwm(x, y, iter = iter, h = .005 ,start = beta_start) )
+eps <-  0.0018
+system.time(pmala_run <- nshmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
+                                   eps_hmc = eps, L = 1, start = beta_start) )
+
+phmc_time<- system.time(phmc_run <- phmc_cpp(x, y, lambda = .01, iter = iter, 
+	eps_hmc = 0.002, L = L_px, start = beta_start, alpha = alpha) )
+
+eps <-  0.002
+system.time(mymala_run <- phmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
+                                   eps_hmc = eps, L = 1, start = beta_start) )
+
+rwm_time <- system.time(rwm_run <- rwm_cpp(x, y, iter = iter, 
+    h = .005 ,start = beta_start, alpha = alpha) )
+
+
+ESS <- round(cbind(ess(rwm_run[[1]]), ess(phmc_run[[1]]), 
+                   ess(mymala_run[[1]]), ess(nshmc_run[[1]]), 
+                   ess(pmala_run[[1]])), 0)
+colnames(ESS) <- c("RWM", "pHMC", "MYMala", "nsHMC", "PMala")
+ESS
+
 
 library(SimTools)
-plot(as.Smcmc(rwm_run[[1]][,5:7]) )
+plot(as.Smcmc(nshmc_run[[1]][ ,5:7]) )
 plot(as.Smcmc(phmc_run[[1]][,5:7]) )
+plot(as.Smcmc(rwm_run[[1]][,5:7]) )
 
+cbind(colMeans(nshmc_run[[1]]), colMeans(phmc_run[[1]]), colMeans(rwm_run[[1]]) )
 ess(rwm_run[[1]])
 ess(phmc_run[[1]])
+
 
 cbind(ess(rwm_run[[1]])/rwm_time[3], ess(phmc_run[[1]])/phmc_time[3] )
 

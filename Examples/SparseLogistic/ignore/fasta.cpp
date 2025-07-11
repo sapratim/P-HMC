@@ -163,7 +163,7 @@ List rcpp_fasta(const arma::mat& x, const arma::vec& y,
                 double alpha, double lamb, double tau1, 
                 int max_iters = 100, int w = 10, bool backtrack = true, 
                 bool recordIterates = false, double stepsizeShrink = 0.5, 
-                double eps_n = 1e-15) {
+                double eps_n = 1e-8) {
   
   int n = x0.n_elem;
   arma::vec residual(max_iters, fill::zeros);
