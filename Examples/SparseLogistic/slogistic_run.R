@@ -22,14 +22,13 @@ beta_start <- as.matrix(unname(logistic_fit ))
 
 L_ns <- 10
 L_px <- 10
-iter <- 1e4
-eps_px <-  0.00015
-eps_ns <- 0.00014
+iter <- 1e6
+eps_ns <-  0.00015
 
 
 output_poisson <- list()
 parallel::detectCores()
-num_cores <- 50
+num_cores <- 10
 doParallel::registerDoParallel(cores = num_cores)
 reps <- 100
 
@@ -38,21 +37,21 @@ output_slog <- foreach(b = 1:reps) %dopar%
 ## Run samplers
   print(b)
   nshmc_time <- system.time(nshmc_run <- nshmc_cpp(x, y, lambda = 1e-4, alpha = alpha, iter = iter,
-                                     eps_hmc = eps_px, L = L_px, start = beta_start) )
+                                     eps_hmc = eps_ns, L = L_ns, start = beta_start, blather = FALSE) )
   
   eps <-  0.0018
   pmala_time <- system.time(pmala_run <- nshmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-                                     eps_hmc = eps, L = 1, start = beta_start) )
+                                     eps_hmc = eps, L = 1, start = beta_start, blather = FALSE) )
   
-  phmc_time <- system.time(phmc_run <- phmc_cpp(x, y, lambda = .01, iter = iter, 
-                                               eps_hmc = 0.002, L = L_px, start = beta_start, alpha = alpha) )
+  phmc_time <- system.time(phmc_run <- phmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = 0.002, 
+                                                L = L_px, start = beta_start, alpha = alpha, blather = FALSE) )
   
   eps <-  0.002
   mymala_time <- system.time(mymala_run <- phmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-                                     eps_hmc = eps, L = 1, start = beta_start) )
+                                     eps_hmc = eps, L = 1, start = beta_start, blather = FALSE) )
   
   rwm_time <- system.time(rwm_run <- rwm_cpp(x, y, iter = iter, 
-                                             h = .005 ,start = beta_start, alpha = alpha) )
+                                             h = .005 ,start = beta_start, alpha = alpha, blather = FALSE) )
 
   # ESS
   all_ess <- cbind(ess(rwm_run[[1]]),ess(phmc_run[[1]]), 

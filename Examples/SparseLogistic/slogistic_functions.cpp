@@ -198,11 +198,10 @@ arma::vec grad_logpiLamg(const arma::mat& X, const arma::vec& y,
 
 
 
-
 // Chaari's non-smooth method
 // [[Rcpp::export]]
 List nshmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,
-               int iter, double eps_hmc, int L, arma::vec start) {
+               int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -240,10 +239,13 @@ List nshmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alp
       samp = q_current;
     }
     
-    if (i % std::max(1, iter / 10) == 0) {
-      Rcpp::Rcout << "Iteration " << i
-                  << ", Acceptance rate so far: "
-                  << (double) accept / i << std::endl;
+    if(blather)
+    {
+      if (i % std::max(1, iter / 10) == 0) {
+        Rcpp::Rcout << "Iteration " << i
+                    << ", Acceptance rate so far: "
+                    << (double) accept / i << std::endl;
+      }
     }
   }
   
@@ -258,7 +260,7 @@ List nshmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alp
 // Proximal HMC (paritial proximal)
 // [[Rcpp::export]]
 List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,
-              int iter, double eps_hmc, int L, arma::vec start) {
+              int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -296,10 +298,13 @@ List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alph
       samp = q_current;
     }
     
-    if (i % std::max(1, iter / 10) == 0) {
-      Rcpp::Rcout << "Iteration " << i
-                  << ", Acceptance rate so far: "
-                  << (double) accept / i << std::endl;
+    if(blather)
+    {
+      if (i % std::max(1, iter / 10) == 0) {
+        Rcpp::Rcout << "Iteration " << i
+                    << ", Acceptance rate so far: "
+                    << (double) accept / i << std::endl;
+      }
     }
   }
   
@@ -311,7 +316,7 @@ List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alph
 
 // [[Rcpp::export]]
 List rwm_cpp(const arma::mat& X, const arma::vec& y, int iter,
-             double h, arma::vec start, double alpha) {
+             double h, arma::vec start, double alpha, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -330,10 +335,13 @@ List rwm_cpp(const arma::mat& X, const arma::vec& y, int iter,
       samples.row(i) = samp.t();
     }
     
-    if (i % std::max(1, iter / 10) == 0) {
-      Rcpp::Rcout << "Iteration " << i
-                  << ", Acceptance rate so far: "
-                  << (double) accept / i << std::endl;
+    if(blather)
+    {
+      if (i % std::max(1, iter / 10) == 0) {
+        Rcpp::Rcout << "Iteration " << i
+                    << ", Acceptance rate so far: "
+                    << (double) accept / i << std::endl;
+      }
     }
   }
   
