@@ -20,11 +20,11 @@ avg_time
 ESS_time <- t(round(apply(avg_ess, 1, function(t) t/avg_time), 2))
 
 
-r1 <- apply(ESS_time, 2, min)
-r2 <- apply(ESS_time, 2, median)
-r3 <- apply(ESS_time, 2, max)
+min <- apply(ESS_time, 2, min)
+median <- apply(ESS_time, 2, median)
+max <- apply(ESS_time, 2, max)
 
-cbind(r1, r2, r3)
+cbind(min, median, max)
 # 
 # library(mcmcse)
 # library(glmnet)
