@@ -10,16 +10,21 @@ output_slog[[1]]
 
 all_ess <- lapply(output_slog, function(t) t[[1]])
 avg_ess <- Reduce("+", all_ess)/length(output_slog)
-avg_ess <- round(avg_ess, 0)
+avg_ess <- round(avg_ess, 5)
 
 all_time <- lapply(output_slog, function(t) t[[2]])
 avg_time <- Reduce("+", all_time)/length(output_slog)
 avg_time 
 
 # ESS/sec
-t(round(apply(avg_ess, 1, function(t) t/avg_time), 2))
+ESS_time <- t(round(apply(avg_ess, 1, function(t) t/avg_time), 2))
 
 
+r1 <- apply(ESS_time, 2, min)
+r2 <- apply(ESS_time, 2, median)
+r3 <- apply(ESS_time, 2, max)
+
+cbind(r1, r2, r3)
 # 
 # library(mcmcse)
 # library(glmnet)
