@@ -166,7 +166,7 @@ draw_contour(q, p, lambda = 10, eps = .01, L = 20)
 
 par(mar = c(0, 0, 0, 0))
 plot.new()
-legend("top", legend = c("nsHMC", "pHMC"),
+legend("top", legend = c("pHMC", "nsHMC"),
        col = c("purple", "orange"), pch = 19, 
        horiz = TRUE, bty = "n", 
        inset = c(0, -0.05),
