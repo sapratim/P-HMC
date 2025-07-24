@@ -6,23 +6,29 @@ library(RcppArmadillo)
 
 set.seed(1)
 source("nn_data.R")
-source("nuclear_norm_functions.R")
-# sourceCpp("nn_functions.cpp")
+sourceCpp("nn_functions.cpp")
 load("warmup_chain.Rdata")
 
+# 
+# 
+nuclear_prox_sigma <- function(Y, alpha, sigma2) {
+  svd_Y <- svd(Y)
+  lambda <- sigma2 * alpha
+  d_thresh <- pmax(svd_Y$d - lambda, 0)
+  return(svd_Y$u %*% diag(d_thresh) %*% t(svd_Y$v))
+}
 
-
-iter <- 1e4
-lamb_coeff <- 10^seq(-7, 20, by = 1)
-eps_px_dur <-  0.0019
-tau <- 5
+MAP <- nuclear_prox_sigma(Y = image_mat, alpha = alpha_hat, sigma2 = sigma2_hat)
+vec.MAP <- vec(MAP)
+# plot(as.cimg(image_mat))
+# plot(as.cimg(MAP))
 
 
 ####################################
 # checking the hamiltonian
 ####################################
-## Durmus
-Leap_Durmus <- function(samp, p_prop, eps_hmc, L, lambda)
+## Our method
+Leap_pHMC <- function(samp, p_prop, eps_hmc, L, lambda)
 {
   U_samp <- -grad_log_durpiLam(samp, lambda,y,sigma2,alpha)
   p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
@@ -36,12 +42,12 @@ Leap_Durmus <- function(samp, p_prop, eps_hmc, L, lambda)
   p_current <- p_current - eps_hmc*U_samp/2
   p_current <- - p_current  # negation to make proposal symmetric
   
-  potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) + sum(dnorm(p_current, log = TRUE))
+  potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) - sum(dnorm(p_current, log = TRUE))
   return(potential)
 }
 
 ## Chaari
-Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
+Leap_ns <- function(samp, p_prop, eps_hmc, L, lambda)
 {
   U_samp <- -grad_logpiLam(samp, lambda,y,sigma2,alpha)
   p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
@@ -55,7 +61,7 @@ Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
   p_current <- p_current - eps_hmc*U_samp/2
   p_current <- - p_current  # negation to make proposal symmetric
   
-  potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) + sum(dnorm(p_current, log = TRUE))
+  potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) - sum(dnorm(p_current, log = TRUE))
   return(potential)
 }
 
@@ -65,34 +71,39 @@ Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
 # random place
 set.seed(3)
 p_prop <- rnorm(length(warmup_end_iter))
-samp <- warmup_end_iter #+ rnorm(dim(x)[2], 0, sd = .001)
+samp <- vec.MAP 
 
 sigma2 = sigma2_hat
 alpha = alpha_hat
 ############################
 # Choosing lambda
 # x = 1
-lambda.seq <- seq(1e-5, .1, length = 1e2)
+lambda.seq <- seq(1e-6, 3e-4, length = 1e2)
 
-dur_ham <- numeric(length = length(lambda.seq))
-px_ham <- numeric(length = length(lambda.seq))
+phmc_ham <- numeric(length = length(lambda.seq))
+ns_ham <- numeric(length = length(lambda.seq))
 
-potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) + sum(dnorm(p_prop, log = TRUE))
+potential <- sum((y - samp)^2)/(2*sigma2) + alpha*nucl_norm(samp) - sum(dnorm(p_prop, log = TRUE))
 
 
 for(i in 1:length(lambda.seq))
 {
   print(i)
-  dur_state <- Leap_Durmus(samp, p_prop, eps_hmc = 1e-4, L = 1, lambda = lambda.seq[i])
-  px_state <- Leap_Chaari(samp, p_prop, eps_hmc = 1e-4, L = 1, lambda = lambda.seq[i])
+  phmc_state <- Leap_pHMC(samp, p_prop, eps_hmc = 1e-7, L = 1, lambda = lambda.seq[i])
+  ns_state <- Leap_ns(samp, p_prop, eps_hmc = 1e-7, L= 1, lambda = lambda.seq[i])
 
-  dur_ham[i] <- abs(potential - dur_state)/abs(potential)
-  px_ham[i] <- abs(potential - px_state)/abs(potential)
+  phmc_ham[i] <- abs(potential - phmc_state)/abs(potential)
+  ns_ham[i] <- abs(potential - ns_state)/abs(potential)
 }
 
-plot(lambda.seq, px_ham, type = 'l', lwd = 2)
-plot(lambda.seq, dur_ham, col = "blue", lwd = 2, type = 'l')
-
+pdf("Output/lambda_nn.pdf", height = 3.5, width = 4.2)
+plot(lambda.seq, phmc_ham, type = 'l', lwd = 2,
+     xlab = expression(lambda), ylab = expression(R[lambda]), 
+     main = "")
+abline(v = 1e-4, lwd = 2, lty = 2)
+legend("bottomright", c("Choice of Lambda"), 
+       col = c( "black"), lty = c(2), lwd = 2, bty = "n")
+dev.off()
 
 
 L <- 10
@@ -106,8 +117,8 @@ for(i in 1:length(eps.vec))
 {
   for(j in 1:length(lamb.vec))
   {
-    ham_dur[i, j] <- Leap_Durmus(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
-    ham_cha[i, j] <- Leap_Chaari(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
+    ham_dur[i, j] <- Leap_pHMC(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
+    ham_cha[i, j] <- Leap_ns(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
   }
 }
 

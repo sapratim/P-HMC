@@ -133,7 +133,7 @@ arma::vec gradf_dur(const arma::vec& z, const arma::mat& x, const arma::vec& y) 
 
 
 // log target
-
+// [[Rcpp::export]]
 double log_pi(const arma::mat& X, const arma::vec& y, const arma::vec& beta, double alpha) {
   arma::vec eta = X * beta;
   arma::vec loglik = y % log1p(exp(-eta)) + (1 - y) % (eta + log1p(exp(-eta)));
@@ -161,7 +161,7 @@ arma::vec soft_threshold(const arma::vec& z, double threshold) {
 
 
 // calculate gradient of the ns-hmc method
-
+// [[Rcpp::export]]
 arma::vec grad_logpiLam(const arma::mat& X, const arma::vec& y,
                         const arma::vec& beta, double lambda,
                         double alpha, double step_size = 0.1,
@@ -187,7 +187,7 @@ arma::vec prox_phmc(const arma::vec& beta, double lambda, double alpha) {
 }
 
 // gradient of the partial proximal methods
-
+// [[Rcpp::export]]
 arma::vec grad_logpiLamg(const arma::mat& X, const arma::vec& y,
                          const arma::vec& beta, double lambda, double alpha) {
   //arma::vec eta = X * beta;

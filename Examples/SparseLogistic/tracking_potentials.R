@@ -3,7 +3,8 @@
 ######################################
 set.seed(1)
 library(glmnet)
-source("slogistic_functions.R")
+library(Rcpp)
+sourceCpp("slogistic_functions.cpp")
 source("slogistic_data.R")
 
 ### data stuff
@@ -16,31 +17,26 @@ beta_start <- as.matrix(unname(beta))
 freq_mode <<- beta_start
 
 
-iter <- 1e4
-lamb_coeff <- 10^seq(-7, 20, by = 1)
-eps_px_dur <-  0.0019
-tau <- 5
-
 
 ####################################
 # checking the hamiltonian
 ####################################
 ## Durmus
-Leap_Durmus <- function(samp, p_prop, eps_hmc, L, lambda)
+Leap_pHMC <- function(samp, p_prop, eps_hmc, L, lambda)
 {
-  U_samp <- -grad_logpiLam_dur(x, y, samp, lambda)
+  U_samp <- -grad_logpiLamg(x, y, samp, lambda, alpha = alpha)
   p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
   q_current <- samp
   for (j in 1:L)
   {
     samp <- samp + eps_hmc*p_current   # full step for position
-    U_samp <- -grad_logpiLam_dur(x, y, samp, lambda)
+    U_samp <- -grad_logpiLamg(x, y, samp, lambda, alpha = alpha)
     if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
   }
   p_current <- p_current - eps_hmc*U_samp/2
   p_current <- - p_current  # negation to make proposal symmetric
   
-  potential <- log_pi(x, y, samp) + sum(dnorm(p_current, log = TRUE))
+  potential <- log_pi(x, y, samp, alpha) + sum(dnorm(p_current, log = TRUE))
   return(potential)
 }
 
@@ -48,20 +44,20 @@ Leap_Durmus <- function(samp, p_prop, eps_hmc, L, lambda)
 Leap_Chaari <- function(samp, p_prop, eps_hmc, L, lambda)
 {
   beta_point <<- samp
-  U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, beta_point, tau)
+  U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha)
   p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
   q_current <- samp
   for (j in 1:L)
   {
     samp <- samp + eps_hmc*p_current   # full step for position
     beta_point <<- samp
-    U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha, beta_point, tau)
+    U_samp <- -grad_logpiLam(x, y, samp, lambda, alpha)
     if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
   }
   p_current <- p_current - eps_hmc*U_samp/2
   p_current <- - p_current  # negation to make proposal symmetric
   
-  potential <- log_pi(x, y, samp) + sum(dnorm(p_current, log = TRUE))
+  potential <- log_pi(x, y, samp, alpha) + sum(dnorm(p_current, log = TRUE))
   return(potential)
 }
 
@@ -79,62 +75,66 @@ samp <- beta_start #+ rnorm(dim(x)[2], 0, sd = .001)
 # x = 1
 lambda.seq <- seq(1e-5, .1, length = 1e2)
 
-dur_ham <- numeric(length = length(lambda.seq))
-px_ham <- numeric(length = length(lambda.seq))
+phmc_ham <- numeric(length = length(lambda.seq))
+ns_ham <- numeric(length = length(lambda.seq))
 
-potential <- log_pi(x, y, samp) + sum(dnorm(p_prop, log = TRUE))
+potential <- log_pi(x, y, samp, alpha = alpha) + sum(dnorm(p_prop, log = TRUE))
 
 
 for(i in 1:length(lambda.seq))
 {
-  dur_state <- Leap_Durmus(samp, p_prop, eps_hmc = 1e-7, L = 10, lambda = lambda.seq[i])
-  px_state <- Leap_Chaari(samp, p_prop, eps_hmc = 1e-7, L = 10, lambda = lambda.seq[i])
+  phmc_state <- Leap_pHMC(samp, p_prop, eps_hmc = 1e-7, L = 1, lambda = lambda.seq[i])
+  ns_state <- Leap_Chaari(samp, p_prop, eps_hmc = 1e-7, L = 1, lambda = lambda.seq[i])
 
-  dur_ham[i] <- abs(potential - dur_state)/abs(potential)
-  px_ham[i] <- abs(potential - px_state)/abs(potential)
+  phmc_ham[i] <- abs(potential - phmc_state)/abs(potential)
+  ns_ham[i] <- abs(potential - ns_state)/abs(potential)
 }
 
-pdf("lambda_slogit.pdf", height = 5, width = 8)
-par(mfrow = c(1,2))
-plot(lambda.seq, px_ham, type = 'l', lwd = 2, xlab = "Lambda", ylab = "R_lambda", main = "Chaari")
-plot(lambda.seq, dur_ham, col = "blue", lwd = 2, type = 'l', xlab = "Lambda", ylab = "R_lambda", main = "Durmus")
+pdf("Output/lambda_slogit.pdf", height = 3.5, width = 4.2)
+plot(lambda.seq, phmc_ham, type = 'l', lwd = 2, 
+     xlab = expression(lambda), ylab = expression(R[lambda]), 
+     main = "")
 abline(v = .01, lwd = 2, lty = 2)
+legend("bottomright", c("Choice of Lambda"), 
+       col = c( "black"), lty = c(2), lwd = 2, bty = "n")
 dev.off()
 
 
-L <- 10
-lamb.vec <- c(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10)
-eps.vec <-  seq(1e-5, 1e-3, length = 20)
-
-truth <- log_pi(x, y, samp) + sum(dnorm(p_prop, log = TRUE))
-ham_dur <- matrix(0, nrow = length(eps.vec), ncol = length(lamb.vec))
-ham_cha <- matrix(0, nrow = length(eps.vec), ncol = length(lamb.vec))
-for(i in 1:length(eps.vec))
-{
-  for(j in 1:length(lamb.vec))
-  {
-    ham_dur[i, j] <- Leap_Durmus(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
-    ham_cha[i, j] <- Leap_Chaari(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
-  }
-}
-
-par(mfrow = c(2,3))
-for(i in 1:min(6,length(eps.vec)))
-{
-  plot(log(lamb.vec), ham_dur[i, ], type = 'l', 
-       ylim = range(c(truth, ham_dur[i,], ham_cha[i,])),
-       main = paste("Eps = ", eps.vec[i]), col = "blue")
-  lines(log(lamb.vec), ham_cha[i, ], col = "red")
-  abline(h = truth, col = "black")
-}
-
-par(mfrow = c(2,3))
-for(i in 1:length(lamb.vec))
-{
-  plot(log(eps.vec), ham_dur[,i], type = 'l', 
-       ylim = range(c(truth, ham_dur[,i], ham_cha[,i])),
-       main = paste("Lambda = ", lamb.vec[i]), col = "blue")
-  lines(log(eps.vec), ham_cha[,i], col = "red")
-  abline(h = truth, col = "black")
-}
-
+# ignore 
+# 
+# L <- 10
+# lamb.vec <- c(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10)
+# eps.vec <-  seq(1e-5, 1e-3, length = 20)
+# 
+# truth <- log_pi(x, y, samp) + sum(dnorm(p_prop, log = TRUE))
+# ham_dur <- matrix(0, nrow = length(eps.vec), ncol = length(lamb.vec))
+# ham_cha <- matrix(0, nrow = length(eps.vec), ncol = length(lamb.vec))
+# for(i in 1:length(eps.vec))
+# {
+#   for(j in 1:length(lamb.vec))
+#   {
+#     ham_dur[i, j] <- Leap_pHMC(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
+#     ham_cha[i, j] <- Leap_Chaari(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
+#   }
+# }
+# 
+# par(mfrow = c(2,3))
+# for(i in 1:min(6,length(eps.vec)))
+# {
+#   plot(log(lamb.vec), ham_dur[i, ], type = 'l', 
+#        ylim = range(c(truth, ham_dur[i,], ham_cha[i,])),
+#        main = paste("Eps = ", eps.vec[i]), col = "blue")
+#   lines(log(lamb.vec), ham_cha[i, ], col = "red")
+#   abline(h = truth, col = "black")
+# }
+# 
+# par(mfrow = c(2,3))
+# for(i in 1:length(lamb.vec))
+# {
+#   plot(log(eps.vec), ham_dur[,i], type = 'l', 
+#        ylim = range(c(truth, ham_dur[,i], ham_cha[,i])),
+#        main = paste("Lambda = ", lamb.vec[i]), col = "blue")
+#   lines(log(eps.vec), ham_cha[,i], col = "red")
+#   abline(h = truth, col = "black")
+# }
+# 

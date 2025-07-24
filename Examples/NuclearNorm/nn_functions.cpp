@@ -3,7 +3,7 @@
 using namespace Rcpp;
 using namespace arma;
 
-
+// [[Rcpp::export]]
 // Compute nuclear norm of a square matrix from a vector
 double nucl_norm(const arma::vec& vect) {
   int nvar = vect.n_elem;
@@ -66,14 +66,14 @@ arma::vec dur_prox_func(const arma::vec& x, double lambda, double alpha) {
   return vectorise(out);
 }
 
-
+// [[Rcpp::export]]
 arma::vec grad_logpiLam(const arma::vec& x, double lambda, const arma::vec& y,
                         double sigma2, double alpha) {
   arma::vec x_prox = prox_func(x, lambda, y, sigma2, alpha);
   return -(x - x_prox) / lambda;
 }
 
-
+// [[Rcpp::export]]
 arma::vec grad_log_durpiLam(const arma::vec& x, double lambda, const arma::vec& y,
                             double sigma2, double alpha) {
   arma::vec x_prox = dur_prox_func(x, lambda, alpha);
@@ -83,12 +83,12 @@ arma::vec grad_log_durpiLam(const arma::vec& x, double lambda, const arma::vec& 
 }
 
 // [[Rcpp::export]]
-List durhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
-            int iter, double eps_hmc, int L, arma::vec start) {
+List phmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
+            int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
   
   int nvar = y.n_elem;
   arma::mat samp_hmc(iter, nvar, fill::zeros);
-  arma::mat mom_mat = randn<arma::mat>(iter, nvar);
+  // arma::mat mom_mat = randn<arma::mat>(iter, nvar);
   
   arma::vec samp = start;
   samp_hmc.row(0) = samp.t();
@@ -96,7 +96,8 @@ List durhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
   int accept = 0;
   
   for (int i = 1; i < iter; ++i) {
-    arma::vec p_prop = mom_mat.row(i).t();
+    // arma::vec p_prop = mom_mat.row(i).t();
+    arma::vec p_prop = arma::randn<arma::vec>(nvar);
     arma::vec U_samp = -grad_log_durpiLam(samp, lambda, y, sigma2, alpha);
     arma::vec p_current = p_prop - 0.5 * eps_hmc * U_samp;
     arma::vec q_current = samp;
@@ -119,7 +120,7 @@ List durhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
     
     double log_acc_prob = U_curr - U_prop + K_curr - K_prop;
     
-    if (std::log(R::runif(0, 1)) <= log_acc_prob) {
+    if (std::log(arma::randu()) <= log_acc_prob) {
       samp_hmc.row(i) = samp.t();
       accept++;
     } else {
@@ -127,8 +128,11 @@ List durhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
       samp = q_current;
     }
     
+    if(blather)
+    {
     if (i % (iter / 10) == 0) {
       Rcout << "Iter: " << i << "  Accept Rate: " << static_cast<double>(accept) / i << std::endl;
+    }
     }
   }
   
@@ -138,12 +142,12 @@ List durhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
 }
 
 // [[Rcpp::export]]
-List pxhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
-           int iter, double eps_hmc, int L, arma::vec start) {
+List nshmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
+           int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
   
   int nvar = y.n_elem;
   arma::mat samp_hmc(iter, nvar, fill::zeros);
-  arma::mat mom_mat = randn<arma::mat>(iter, nvar);
+  // arma::mat mom_mat = randn<arma::mat>(iter, nvar);
   
   arma::vec samp = start;
   samp_hmc.row(0) = samp.t();
@@ -151,7 +155,8 @@ List pxhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
   int accept = 0;
   
   for (int i = 1; i < iter; ++i) {
-    arma::vec p_prop = mom_mat.row(i).t();
+    // arma::vec p_prop = mom_mat.row(i).t();
+    arma::vec p_prop = arma::randn<arma::vec>(nvar);
     arma::vec U_samp = -grad_logpiLam(samp, lambda, y, sigma2, alpha);
     arma::vec p_current = p_prop - 0.5 * eps_hmc * U_samp;
     arma::vec q_current = samp;
@@ -174,7 +179,7 @@ List pxhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
     
     double log_acc_prob = U_curr - U_prop + K_curr - K_prop;
     
-    if (std::log(R::runif(0, 1)) <= log_acc_prob) {
+    if (std::log(arma::randu()) <= log_acc_prob) {
       samp_hmc.row(i) = samp.t();
       accept++;
     } else {
@@ -182,12 +187,59 @@ List pxhmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
       samp = q_current;
     }
     
-    if (i % (iter / 10) == 0) {
-      Rcout << "Iter: " << i << "  Accept Rate: " << static_cast<double>(accept) / i << std::endl;
+    if(blather)
+    {
+      if (i % (iter / 10) == 0) {
+        Rcout << "Iter: " << i << "  Accept Rate: " << static_cast<double>(accept) / i << std::endl;
+      }
     }
   }
   
   double acc_rate = static_cast<double>(accept) / iter;
   Rcout << "Final Acceptance Rate: " << acc_rate << std::endl;
   return List::create(Named("samples") = samp_hmc, Named("acceptance_rate") = acc_rate);
+}
+
+
+
+// [[Rcpp::export]]
+List rwm_cpp(const arma::vec& y, double sigma2, double alpha,
+             int iter, double proposal_sd, arma::vec start, bool blather = true) {
+  
+  int nvar = y.n_elem;
+  arma::mat samples(iter, nvar, fill::zeros);
+  samples.row(0) = start.t();
+  
+  arma::vec current = start;
+  double log_post_current = log_pi(current, y, sigma2, alpha);
+  int accept = 0;
+  
+  for (int i = 1; i < iter; ++i) {
+    arma::vec proposal = current + proposal_sd * arma::randn<arma::vec>(nvar);
+    double log_post_proposal = log_pi(proposal, y, sigma2, alpha);
+    
+    double log_ratio = log_post_proposal - log_post_current;
+    
+    if (std::log(arma::randu()) < log_ratio) {
+      // accept
+      current = proposal;
+      log_post_current = log_post_proposal;
+      accept++;
+    }
+    
+    samples.row(i) = current.t();
+    
+    if(blather)
+    {
+      if (i % (iter / 10) == 0) {
+        Rcout << "Iter: " << i << "  Accept Rate: " << static_cast<double>(accept) / i << std::endl;
+      }
+    }
+  }
+  
+  double acc_rate = static_cast<double>(accept) / iter;
+  Rcout << "Final Acceptance Rate: " << acc_rate << std::endl;
+  
+  return List::create(Named("samples") = samples,
+                      Named("acceptance_rate") = acc_rate);
 }

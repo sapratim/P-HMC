@@ -56,18 +56,6 @@ integrate_px <- function(x, lambda){
   sapply(x, function(t) exp(logpi_lam_px(t, lambda = lambda)))
 }
 
-lambda <- 1
-const <- integrate(integrate_f, lower = -2, upper = 4)
-const_dur <- integrate(integrate_dur, lower = -2, upper = 4, lambda)
-const_px <- integrate(integrate_px, lower = -2, upper = 4, lambda)
-
-x.axis <- seq(-2, 3, length = 1e3)
-pi_x <- sapply(x.axis, function(x) exp(log_target(x)))/const$value
-pi_x_dur <- sapply(x.axis, function(x) exp(logpi_lam_dur(x, lambda)))/const_dur$value
-pi_x_px <- sapply(x.axis, function(x) exp(logpi_lam_px(x, lambda)))/const_px$value
-plot(x.axis, pi_x, type = 'l')
-lines(x.axis, pi_x_dur, col = "blue")
-lines(x.axis, pi_x_px, col = "red")
 
 
 ##################################
@@ -89,7 +77,7 @@ for(i in 1:length(q_vec))
   }
 }
 
-dur_path <- function(q, p, lambda, eps, L)
+phmc_path <- function(q, p, lambda, eps, L)
 {
   store <- matrix(0, nrow = L + 1, ncol = 2)
   q_current <- q
@@ -113,7 +101,7 @@ dur_path <- function(q, p, lambda, eps, L)
   return(store)
 }
 
-px_path <- function(q, p, lambda, eps, L)
+ns_path <- function(q, p, lambda, eps, L)
 {
   store <- matrix(0, nrow = L + 1, ncol = 2)
   q_current <- q
@@ -139,22 +127,25 @@ px_path <- function(q, p, lambda, eps, L)
 
 draw_contour <- function(q, p, lambda, eps = .02, L = 10)
 {
-  path_dur <- dur_path(q, p, lambda = lambda, eps = eps, L = L)
-  path_px <- px_path(q, p, lambda = lambda, eps = eps, L = L)
+  path_dur <- phmc_path(q, p, lambda = lambda, eps = eps, L = L)
+  path_px <- ns_path(q, p, lambda = lambda, eps = eps, L = L)
   
   contour(q_vec, p_vec, z, nlevels = 2, 
           xlim = c(.93, 1.15), ylim = c(-1.2, 1.2),
-          main = bquote(lambda == .(lambda)), 
-          xlab = bquote(x), ylab = bquote(p), lwd = 2)
+          main = bquote(lambda == .(lambda)), lwd = 2)
   points(path_dur, col = "purple", pch = 19)
   points(path_px, col = "orange", pch = 19)
 }
 
-pdf("toy_contours.pdf", height = 6, width = 10)
-layout(matrix(c(1:8, rep(9, 4)), nrow = 3, byrow = TRUE),
-       heights = c(1, 1, 0.3))  # Last row is for legend
-# Set tight margins for each plot (bottom, left, top, right)
-par(mar = c(2, 2, 2, 1), oma = c(4, 4, 2, 1))  # oma allows outer text space
+
+pdf("toy_contours.pdf", height = 5, width = 8)
+
+# Layout: 8 plots + 1 row for top legend
+layout(matrix(c(rep(9, 4), 1:8), nrow = 3, byrow = TRUE),
+       heights = c(0.3, 1, 1))  # first row for legend
+
+# Tighter margins and minimal label-to-axis spacing
+par(mar = c(2, 2, 2, 1), oma = c(4, 4, 2, 1), mgp = c(1.2, 0.3, 0))
 
 q <- .947
 p <- 0
@@ -175,9 +166,11 @@ draw_contour(q, p, lambda = 10, eps = .01, L = 20)
 
 par(mar = c(0, 0, 0, 0))
 plot.new()
-legend("center", legend = c("Partial Proximal", "Full Proximal"),
-       col = c("purple", "orange"), pch = 19, horiz = TRUE, bty = "n", cex = 1.5)
-
+legend("top", legend = c("nsHMC", "pHMC"),
+       col = c("purple", "orange"), pch = 19, 
+       horiz = TRUE, bty = "n", 
+       inset = c(0, -0.05),
+       cex = 1.5)
 
 # Add shared axis labels using outer margin text
 mtext("Potential component: x", side = 1, line = 2.2, outer = TRUE, cex = 1.2)
@@ -186,159 +179,153 @@ mtext("Momentum component: p", side = 2, line = 2.2, outer = TRUE, cex = 1.2)
 dev.off()
 
 
-q <- 1
-p <- -.816110003
-exp(log_joint(q, p))
-
-draw_contour(q, p, lambda = .001, eps = .01, L = 20)
-draw_contour(q, p, lambda = .01, eps = .01, L = 20)
-draw_contour(q, p, lambda = 1, eps = .01, L = 20)
-draw_contour(q, p, lambda = 10, eps = .01, L = 0)
 
 ############################
 # Choosing lambda
-# x = 1
-q <- 1.04
+q <- 1.04  # MAP
 p <- -.5
-lambda.seq <- seq(1e-3, 10, length = 1e3)
+lambda.seq <- seq(1e-3, 5, length = 1e3)
 
-dur_ham <- numeric(length = length(lambda.seq))
-px_ham <- numeric(length = length(lambda.seq))
+phmc_ham <- numeric(length = length(lambda.seq))
+ns_ham <- numeric(length = length(lambda.seq))
 
 ham <- function(q, p) - log_target(q) + p^2/2
 
 for(i in 1:length(lambda.seq))
 {
-  dur_state <- dur_path(q, p, lambda.seq[i], .001, 10)[2, ]
-  px_state <- px_path(q, p, lambda.seq[i], .001, 10)[2, ]
+  phmc_state <- phmc_path(q, p, lambda.seq[i], .001, 1)[2, ]
+  ns_state <- ns_path(q, p, lambda.seq[i], .001, 1)[2, ]
 
-  dur_ham[i] <- abs(ham(q,p) - ham(dur_state[1], dur_state[2]))/abs(ham(q,p) )
-  px_ham[i] <- abs(ham(q,p) - ham(px_state[1], px_state[2]))/abs(ham(q,p) )
+  phmc_ham[i] <- abs(ham(q,p) - ham(phmc_state[1], phmc_state[2]))/abs(ham(q,p) )
+  ns_ham[i] <- abs(ham(q,p) - ham(ns_state[1], ns_state[2]))/abs(ham(q,p) )
 }
 
-pdf("lambda_toy.pdf", height = 5, width = 6)
-plot(lambda.seq, px_ham, type = 'l', lwd = 2, 
-  ylim = range(c(dur_ham, px_ham, 0)), xlab = "Lambda", ylab = "R_lambda")
-lines(lambda.seq, dur_ham, col = "blue", lwd = 2)
-legend("bottomright", c("Chaari", "Durmus", "Choice of Lambda"), col = c("black", "blue", "black"), lty = c(1,1,2), lwd = 2)
+pdf("lambda_toy.pdf", height = 3.5, width = 4.2)
+plot(lambda.seq, phmc_ham, type = 'l', lwd = 2, 
+  ylim = range(c(phmc_ham, 0)), xlab = expression(lambda), ylab = expression(R[lambda]) )
 abline(v = 1, lty = 2, lwd = 2)
+legend("bottomright", c("Choice of Lambda"), 
+       col = c( "black"), lty = c(2), lwd = 2, bty = "n")
 dev.off()
-###########################
-# HMC with Durmus split
-durhmc <- function(lambda, iter, eps_hmc, L, start)
-{
-  samp.hmc <- numeric(length = iter)
-  
-  # starting value computations
-  samp <- start
-  samp.hmc[1] <- samp
-  
-  # For HMC
-  mom_mat <- rnorm(iter)
-  accept <- 0
-  
-  for (i in 2:iter) 
-  {
-    p_prop <- mom_mat[i]
-    U_samp <- -grad_log_pi_dur(samp, lambda)
-    p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
-    q_current <- samp
-    for (j in 1:L)
-    {
-      samp <- samp + eps_hmc*p_current   # full step for position
-      U_samp <- -grad_log_pi_dur(samp, lambda)
-      if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
-    }
-    p_current <- p_current - eps_hmc*U_samp/2
-    p_current <- - p_current  # negation to make proposal symmetric
-    
-    U_curr <- -log_target(q_current)
-    U_prop <- -log_target(samp)
-    K_curr <-  sum((p_prop^2)/2)
-    K_prop <-  sum((p_current^2)/2)
-    
-    log_acc_prob = U_curr - U_prop + K_curr - K_prop
-    
-    if(log(runif(1)) <= log_acc_prob )
-    {
-      samp.hmc[i] <- samp
-      accept <- accept + 1
-    }
-    else
-    {
-      samp.hmc[i] <- q_current
-      samp <- q_current
-    }
-    if(i %% (iter/10) == 0){
-      j <- accept/i
-      print(cat(i, j))}
-  } 
-  print(acc_rate <- accept/iter)
-  object <- list(samp.hmc, acc_rate)
-  return(object)
-}
 
 
-###########################
-# HMC on whole proximal
-pxhmc <- function(lambda, iter, eps_hmc, L, start)
-{
-  samp.hmc <- numeric(length = iter)
-  
-  # starting value computations
-  samp <- start
-  samp.hmc[1] <- samp
-  
-  # For HMC
-  mom_mat <- rnorm(iter)
-  accept <- 0
-  
-  for (i in 2:iter) 
-  {
-    p_prop <- mom_mat[i]
-    U_samp <- -grad_log_pi_px(samp, lambda)
-    p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
-    q_current <- samp
-    for (j in 1:L)
-    {
-      samp <- samp + eps_hmc*p_current   # full step for position
-      U_samp <- -grad_log_pi_px(samp, lambda)
-      if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
-    }
-    p_current <- p_current - eps_hmc*U_samp/2
-    p_current <- - p_current  # negation to make proposal symmetric
-    
-    U_curr <- -log_target(q_current)
-    U_prop <- -log_target(samp)
-    K_curr <-  sum((p_prop^2)/2)
-    K_prop <-  sum((p_current^2)/2)
-    
-    log_acc_prob = U_curr - U_prop + K_curr - K_prop
-    
-    if(log(runif(1)) <= log_acc_prob )
-    {
-      samp.hmc[i] <- samp
-      accept <- accept + 1
-    }
-    else
-    {
-      samp.hmc[i] <- q_current
-      samp <- q_current
-    }
-    if(i %% (iter/10) == 0){
-      j <- accept/i
-      print(cat(i, j))}
-  } 
-  print(acc_rate <- accept/iter)
-  object <- list(samp.hmc, acc_rate)
-  return(object)
-}
-
-
-chain_dur <- durhmc(lambda = .01, iter = 1e4, eps_hmc = .1, L = 10, start = 2)
-chain_px <- pxhmc(lambda = .01, iter = 1e4, eps_hmc = .1, L = 10, start = 2)
-
-plot(density(chain_dur[[1]]))
-plot(density(chain_px[[1]]))
-acf(chain_dur[[1]])
-acf(chain_px[[1]])
+# No need to run the chains
+# ###########################
+# # HMC with Durmus split
+# durhmc <- function(lambda, iter, eps_hmc, L, start)
+# {
+#   samp.hmc <- numeric(length = iter)
+#   
+#   # starting value computations
+#   samp <- start
+#   samp.hmc[1] <- samp
+#   
+#   # For HMC
+#   mom_mat <- rnorm(iter)
+#   accept <- 0
+#   
+#   for (i in 2:iter) 
+#   {
+#     p_prop <- mom_mat[i]
+#     U_samp <- -grad_log_pi_dur(samp, lambda)
+#     p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
+#     q_current <- samp
+#     for (j in 1:L)
+#     {
+#       samp <- samp + eps_hmc*p_current   # full step for position
+#       U_samp <- -grad_log_pi_dur(samp, lambda)
+#       if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
+#     }
+#     p_current <- p_current - eps_hmc*U_samp/2
+#     p_current <- - p_current  # negation to make proposal symmetric
+#     
+#     U_curr <- -log_target(q_current)
+#     U_prop <- -log_target(samp)
+#     K_curr <-  sum((p_prop^2)/2)
+#     K_prop <-  sum((p_current^2)/2)
+#     
+#     log_acc_prob = U_curr - U_prop + K_curr - K_prop
+#     
+#     if(log(runif(1)) <= log_acc_prob )
+#     {
+#       samp.hmc[i] <- samp
+#       accept <- accept + 1
+#     }
+#     else
+#     {
+#       samp.hmc[i] <- q_current
+#       samp <- q_current
+#     }
+#     if(i %% (iter/10) == 0){
+#       j <- accept/i
+#       print(cat(i, j))}
+#   } 
+#   print(acc_rate <- accept/iter)
+#   object <- list(samp.hmc, acc_rate)
+#   return(object)
+# }
+# 
+# 
+# ###########################
+# # HMC on whole proximal
+# pxhmc <- function(lambda, iter, eps_hmc, L, start)
+# {
+#   samp.hmc <- numeric(length = iter)
+#   
+#   # starting value computations
+#   samp <- start
+#   samp.hmc[1] <- samp
+#   
+#   # For HMC
+#   mom_mat <- rnorm(iter)
+#   accept <- 0
+#   
+#   for (i in 2:iter) 
+#   {
+#     p_prop <- mom_mat[i]
+#     U_samp <- -grad_log_pi_px(samp, lambda)
+#     p_current <- p_prop - eps_hmc*U_samp /2  # half step for momentum
+#     q_current <- samp
+#     for (j in 1:L)
+#     {
+#       samp <- samp + eps_hmc*p_current   # full step for position
+#       U_samp <- -grad_log_pi_px(samp, lambda)
+#       if(j!=L) p_current <- p_current - eps_hmc*U_samp  # full step for momentum
+#     }
+#     p_current <- p_current - eps_hmc*U_samp/2
+#     p_current <- - p_current  # negation to make proposal symmetric
+#     
+#     U_curr <- -log_target(q_current)
+#     U_prop <- -log_target(samp)
+#     K_curr <-  sum((p_prop^2)/2)
+#     K_prop <-  sum((p_current^2)/2)
+#     
+#     log_acc_prob = U_curr - U_prop + K_curr - K_prop
+#     
+#     if(log(runif(1)) <= log_acc_prob )
+#     {
+#       samp.hmc[i] <- samp
+#       accept <- accept + 1
+#     }
+#     else
+#     {
+#       samp.hmc[i] <- q_current
+#       samp <- q_current
+#     }
+#     if(i %% (iter/10) == 0){
+#       j <- accept/i
+#       print(cat(i, j))}
+#   } 
+#   print(acc_rate <- accept/iter)
+#   object <- list(samp.hmc, acc_rate)
+#   return(object)
+# }
+# 
+# 
+# chain_dur <- durhmc(lambda = .01, iter = 1e4, eps_hmc = .1, L = 10, start = 2)
+# chain_px <- pxhmc(lambda = .01, iter = 1e4, eps_hmc = .1, L = 10, start = 2)
+# 
+# plot(density(chain_dur[[1]]))
+# plot(density(chain_px[[1]]))
+# acf(chain_dur[[1]])
+# acf(chain_px[[1]])
