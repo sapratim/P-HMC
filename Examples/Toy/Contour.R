@@ -129,10 +129,11 @@ draw_contour <- function(q, p, lambda, eps = .02, L = 10)
 {
   path_dur <- phmc_path(q, p, lambda = lambda, eps = eps, L = L)
   path_px <- ns_path(q, p, lambda = lambda, eps = eps, L = L)
-  
+  main_expr <- bquote(paste(lambda[g], " = ", lambda, " = ",
+                            .(format(lambda, digits = 3))))
   contour(q_vec, p_vec, z, nlevels = 2, 
           xlim = c(.93, 1.15), ylim = c(-1.2, 1.2),
-          main = bquote(lambda == .(lambda)), lwd = 2)
+          main = main_expr, lwd = 2)
   points(path_dur, col = "purple", pch = 19)
   points(path_px, col = "orange", pch = 19)
 }
@@ -145,7 +146,7 @@ layout(matrix(c(rep(9, 4), 1:8), nrow = 3, byrow = TRUE),
        heights = c(0.3, 1, 1))  # first row for legend
 
 # Tighter margins and minimal label-to-axis spacing
-par(mar = c(2, 2, 2, 1), oma = c(4, 4, 2, 1), mgp = c(1.2, 0.3, 0))
+par(mar = c(2, 2, 2, 1), oma = c(4, 4, 2, 3), mgp = c(1.2, 0.3, 0))
 
 q <- .947
 p <- 0
@@ -154,6 +155,8 @@ draw_contour(q, p, lambda = .001, eps = .01, L = 20)
 draw_contour(q, p, lambda = .01, eps = .01, L = 20)
 draw_contour(q, p, lambda = 1, eps = .01, L = 20)
 draw_contour(q, p, lambda = 10, eps = .01, L = 20)
+mtext(bquote("(" * x[0] * "," ~ p[0] * ")" == "(" * .(q) * "," ~ .(p) * ")"),
+      side = 4, line = 0.5, outer = FALSE, cex = 0.8)
 
 q <- 1.1
 p <- -.8
@@ -163,18 +166,20 @@ draw_contour(q, p, lambda = .001, eps = .01, L = 20)
 draw_contour(q, p, lambda = .01, eps = .01, L = 20)
 draw_contour(q, p, lambda = 1, eps = .01, L = 20)
 draw_contour(q, p, lambda = 10, eps = .01, L = 20)
+mtext(bquote("(" * x[0] * "," ~ p[0] * ")" == "(" * .(q) * "," ~ .(p) * ")"),
+      side = 4, line = 0.5, outer = FALSE, cex = 0.8)
 
 par(mar = c(0, 0, 0, 0))
 plot.new()
-legend("top", legend = c("pHMC", "nsHMC"),
-       col = c("purple", "orange"), pch = 19, 
+legend("top", legend = c("nsHMC", "pHMC"),
+       col = c("orange", "purple"), pch = 19, 
        horiz = TRUE, bty = "n", 
        inset = c(0, -0.05),
        cex = 1.5)
 
 # Add shared axis labels using outer margin text
-mtext("Potential component: x", side = 1, line = 2.2, outer = TRUE, cex = 1.2)
-mtext("Momentum component: p", side = 2, line = 2.2, outer = TRUE, cex = 1.2)
+mtext("Position: x", side = 1, line = 2.2, outer = TRUE, cex = 1.2)
+mtext("Momentum: p", side = 2, line = 2.2, outer = TRUE, cex = 1.2)
 
 dev.off()
 
@@ -202,10 +207,10 @@ for(i in 1:length(lambda.seq))
 
 pdf("lambda_toy.pdf", height = 3.5, width = 4.2)
 plot(lambda.seq, phmc_ham, type = 'l', lwd = 2, 
-  ylim = range(c(phmc_ham, 0)), xlab = expression(lambda), ylab = expression(R[lambda]) )
+  ylim = range(c(phmc_ham, 0)), xlab = expression(lambda[g]), ylab = expression(R[lambda[g]]))
 abline(v = 1, lty = 2, lwd = 2)
-legend("bottomright", c("Choice of Lambda"), 
-       col = c( "black"), lty = c(2), lwd = 2, bty = "n")
+legend("bottomright", legend = expression("Choice of " * lambda[g]),
+       col = "black", lty = 2, lwd = 2, bty = "n")
 dev.off()
 
 

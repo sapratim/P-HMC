@@ -92,10 +92,10 @@ for(i in 1:length(lambda.seq))
 
 pdf("Output/lambda_slogit.pdf", height = 3.5, width = 4.2)
 plot(lambda.seq, phmc_ham, type = 'l', lwd = 2, 
-     xlab = expression(lambda), ylab = expression(R[lambda]), 
+     xlab = expression(lambda[g]), ylab = expression(R[lambda[g]]), 
      main = "")
 abline(v = .01, lwd = 2, lty = 2)
-legend("bottomright", c("Choice of Lambda"), 
+legend("bottomright", legend = expression("Choice of " * lambda[g]), 
        col = c( "black"), lty = c(2), lwd = 2, bty = "n")
 dev.off()
 
