@@ -139,14 +139,14 @@ draw_contour <- function(q, p, lambda, eps = .02, L = 10)
 }
 
 
-pdf("toy_contours.pdf", height = 5, width = 8)
+pdf("toy_contours.pdf", height = 5, width = 10)
 
 # Layout: 8 plots + 1 row for top legend
 layout(matrix(c(rep(9, 4), 1:8), nrow = 3, byrow = TRUE),
-       heights = c(0.3, 1, 1))  # first row for legend
+       heights = c(.12, 1, 1))  # first row for legend
 
 # Tighter margins and minimal label-to-axis spacing
-par(mar = c(2, 2, 2, 1), oma = c(4, 4, 2, 3), mgp = c(1.2, 0.3, 0))
+par(mar = c(2, 2, 1, 1), oma = c(4, 4, 2, 3), mgp = c(3, 0.3, 0))
 
 q <- .947
 p <- 0
@@ -174,12 +174,12 @@ plot.new()
 legend("top", legend = c("nsHMC", "pHMC"),
        col = c("orange", "purple"), pch = 19, 
        horiz = TRUE, bty = "n", 
-       inset = c(0, -0.05),
+       inset = c(0, -.55),
        cex = 1.5)
 
 # Add shared axis labels using outer margin text
-mtext("Position: x", side = 1, line = 2.2, outer = TRUE, cex = 1.2)
-mtext("Momentum: p", side = 2, line = 2.2, outer = TRUE, cex = 1.2)
+mtext("Position: x", side = 1, line = .5, outer = TRUE, cex = 1.2)
+mtext("Momentum: p", side = 2, line = .5, outer = TRUE, cex = 1.2)
 
 dev.off()
 
