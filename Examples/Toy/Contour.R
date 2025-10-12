@@ -139,6 +139,8 @@ draw_contour <- function(q, p, lambda, eps = .02, L = 10)
 }
 
 
+eps <- .01
+L <- 20
 pdf("toy_contours.pdf", height = 5, width = 10)
 
 # Layout: 8 plots + 1 row for top legend
@@ -146,15 +148,15 @@ layout(matrix(c(rep(9, 4), 1:8), nrow = 3, byrow = TRUE),
        heights = c(.12, 1, 1))  # first row for legend
 
 # Tighter margins and minimal label-to-axis spacing
-par(mar = c(2, 2, 1, 1), oma = c(4, 4, 2, 3), mgp = c(3, 0.3, 0))
+par(mar = c(2, 2, 1, 1), oma = c(2, 2, 2, 2), mgp = c(3, 0.3, 0))
 
 q <- .947
 p <- 0
 exp(log_joint(q, p))
-draw_contour(q, p, lambda = .001, eps = .01, L = 20)
-draw_contour(q, p, lambda = .01, eps = .01, L = 20)
-draw_contour(q, p, lambda = 1, eps = .01, L = 20)
-draw_contour(q, p, lambda = 10, eps = .01, L = 20)
+draw_contour(q, p, lambda = .001, eps = eps, L = L)
+draw_contour(q, p, lambda = .01, eps = eps, L = L)
+draw_contour(q, p, lambda = 1, eps = eps, L = L)
+draw_contour(q, p, lambda = 10, eps = eps, L = L)
 mtext(bquote("(" * x[0] * "," ~ p[0] * ")" == "(" * .(q) * "," ~ .(p) * ")"),
       side = 4, line = 0.5, outer = FALSE, cex = 0.8)
 
@@ -162,24 +164,24 @@ q <- 1.1
 p <- -.8
 exp(log_joint(q, p))
 
-draw_contour(q, p, lambda = .001, eps = .01, L = 20)
-draw_contour(q, p, lambda = .01, eps = .01, L = 20)
-draw_contour(q, p, lambda = 1, eps = .01, L = 20)
-draw_contour(q, p, lambda = 10, eps = .01, L = 20)
+draw_contour(q, p, lambda = .001, eps = eps, L = L)
+draw_contour(q, p, lambda = .01, eps = eps, L = L)
+draw_contour(q, p, lambda = 1, eps = eps, L = L)
+draw_contour(q, p, lambda = 10, eps = eps, L = L)
 mtext(bquote("(" * x[0] * "," ~ p[0] * ")" == "(" * .(q) * "," ~ .(p) * ")"),
       side = 4, line = 0.5, outer = FALSE, cex = 0.8)
 
 par(mar = c(0, 0, 0, 0))
 plot.new()
-legend("top", legend = c("nsHMC", "pHMC"),
+legend("top", legend = c("ns-HMC", "p-HMC"),
        col = c("orange", "purple"), pch = 19, 
        horiz = TRUE, bty = "n", 
        inset = c(0, -.55),
        cex = 1.5)
 
 # Add shared axis labels using outer margin text
-mtext("Position: x", side = 1, line = .5, outer = TRUE, cex = 1.2)
-mtext("Momentum: p", side = 2, line = .5, outer = TRUE, cex = 1.2)
+mtext("Position: x", side = 1, line = .5, outer = TRUE, cex = 1)
+mtext("Momentum: p", side = 2, line = .5, outer = TRUE, cex = 1)
 
 dev.off()
 
@@ -189,6 +191,7 @@ dev.off()
 # Choosing lambda
 q <- 1.04  # MAP
 p <- -.5
+eps <- 1e-7
 lambda.seq <- seq(1e-3, 5, length = 1e3)
 
 phmc_ham <- numeric(length = length(lambda.seq))
@@ -198,8 +201,8 @@ ham <- function(q, p) - log_target(q) + p^2/2
 
 for(i in 1:length(lambda.seq))
 {
-  phmc_state <- phmc_path(q, p, lambda.seq[i], .001, 1)[2, ]
-  ns_state <- ns_path(q, p, lambda.seq[i], .001, 1)[2, ]
+  phmc_state <- phmc_path(q, p, lambda.seq[i], eps, 1)[2, ]
+  ns_state <- ns_path(q, p, lambda.seq[i], eps, 1)[2, ]
 
   phmc_ham[i] <- abs(ham(q,p) - ham(phmc_state[1], phmc_state[2]))/abs(ham(q,p) )
   ns_ham[i] <- abs(ham(q,p) - ham(ns_state[1], ns_state[2]))/abs(ham(q,p) )

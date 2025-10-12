@@ -46,7 +46,7 @@ for(i in 1:7)
 }
 # Add a legend on top of the plot
 legend("top",
-       legend = c("nsHMC", "pHMC"),
+       legend = c("ns-HMC", "p-HMC"),
        col = c("orange", "purple"),
        lty = c(1,2),
        lwd = 1.5,
