@@ -4,7 +4,7 @@
 ############################################################################
 
 load("Output/outputnn.Rdata")
-
+load("Output/outputnn_true.Rdata")
 
 output_slog[[1]]
 
@@ -74,3 +74,95 @@ legend("top",
        inset = c(0, -0.19),  # pushes legend into the top margin
        xpd = TRUE)               # allow drawing outside plot region
 dev.off()
+
+
+########################  Function for Comparison Metrics  ########################
+
+alg_means <- lapply(output_slog, '[[', 1)    #### list of posterior means for all reps
+true_means <- do.call(cbind, lapply(output_nn, '[[', 1))  #### actual means (dim x reps)
+truth_estimate <- rowMeans(true_means)
+
+names <- c("RWM", "pHMC", "myMALA", "nsHMC", "pMALA", "guoHMC")
+
+metric_fun <- function(name)# enter one of ("RWM","pHMC","myMALA","nsHMC","pMALA","guoHMC")
+{
+  i <- which(names == name)
+  
+  # posterior mean matrix (dim x reps)
+  mat_means <- sapply(alg_means, function(x) x[,i])
+  
+  # mean deviations for different reps
+  mean_devs_mat <- mat_means - truth_estimate
+  
+  # relative error
+  mean_re <- mean(sqrt(colSums(mean_devs_mat^2)) / sqrt(sum(truth_estimate^2))) # mean
+  max_re <-  max(sqrt(colSums(mean_devs_mat^2)) / sqrt(sum(truth_estimate^2))) # maximum
+  pooled_re <- sqrt((rowMeans(mat_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2)) # pooled
+  
+  # average mean square error
+  avg_mse_mat <- mean(colSums(mean_devs_mat^2))
+  
+  output <- list(mean_re, max_re, pooled_re, avg_mse_mat)
+  return(output)
+}
+
+rwm_output <- metric_fun("RWM")
+pHMC_output <- metric_fun("pHMC")
+myMALA_output <- metric_fun("myMALA")
+nsHMC_output <- metric_fun("nsHMC")
+pMALA_output <- metric_fun("pMALA")
+guoHMC_output <- metric_fun("guoHMC")
+
+# ###################### Comparison metrics  ######################
+# 
+# alg_means <- lapply(output_slog, '[[', 1)    #### list of posterior means for all reps
+# true_means <- do.call(cbind, lapply(output_nn, '[[', 1))  #### actual means (dim x reps)
+# truth_estimate <- rowMeans(true_means)
+
+# rwm_means <- sapply(alg_means, function(x) x[,1])
+# pHMC_means <- sapply(alg_means, function(x) x[,2])
+# myMALA_means <- sapply(alg_means, function(x) x[,3])
+# nsHMC_means <- sapply(alg_means, function(x) x[,4])
+# pMALA_means <- sapply(alg_means, function(x) x[,5])
+# 
+# 
+# ############################  Relative error  ############################
+# 
+# mean_devs_rwm <- rwm_means - truth_estimate
+# mean_devs_phmc  <- pHMC_means - truth_estimate  
+# mean_devs_myMALA  <- myMALA_means - truth_estimate
+# mean_devs_nsHMC  <- nsHMC_means - truth_estimate
+# mean_devs_pMALA  <- pMALA_means - truth_estimate
+#  
+# ########### Mean relative error ############
+#   
+# mean_re_rwm <-  mean(sqrt(colSums(mean_devs_rwm^2)) / sqrt(sum(truth_estimate^2)))
+# mean_re_pHMC <-  mean(sqrt(colSums(mean_devs_pHMC^2)) / sqrt(sum(truth_estimate^2)))
+# mean_re_myMALA <-  mean(sqrt(colSums(mean_devs_myMALA^2)) / sqrt(sum(truth_estimate^2)))
+# mean_re_nsHMC <-  mean(sqrt(colSums(mean_devs_nsHMC^2)) / sqrt(sum(truth_estimate^2)))
+# mean_re_pMALA <-  mean(sqrt(colSums(mean_devs_pMALA^2)) / sqrt(sum(truth_estimate^2)))
+# 
+# ########### Maximum relative error ############
+# 
+# max_re_rwm <-  max(sqrt(colSums(mean_devs_rwm^2)) / sqrt(sum(truth_estimate^2)))
+# max_re_pHMC <-  max(sqrt(colSums(mean_devs_pHMC^2)) / sqrt(sum(truth_estimate^2)))
+# max_re_myMALA <-  max(sqrt(colSums(mean_devs_myMALA^2)) / sqrt(sum(truth_estimate^2)))
+# max_re_nsHMC <-  max(sqrt(colSums(mean_devs_nsHMC^2)) / sqrt(sum(truth_estimate^2)))
+# max_re_pMALA <-  max(sqrt(colSums(mean_devs_pMALA^2)) / sqrt(sum(truth_estimate^2)))
+# 
+# ############  Pooled relative error ############
+# 
+# pooled_re_rwm <- sqrt((rowMeans(rwm_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2))
+# pooled_re_pHMC <- sqrt((rowMeans(pHMC_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2))
+# pooled_re_myMALA <- sqrt((rowMeans(myMALA_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2))
+# pooled_re_nsHMC <- sqrt((rowMeans(nsHMC_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2))
+# pooled_re_pMALA <- sqrt((rowMeans(pMALA_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2))
+# 
+# ########################## Average Mean Squared error ###########################
+# 
+# avg_mse_rwm <- mean(colSums(mean_devs_rwm^2))
+# avg_mse_pHMC <- mean(colSums(mean_devs_pHMC^2))
+# avg_mse_myMALA <- mean(colSums(mean_devs_myMALA^2))
+# avg_mse_nsHMC <- mean(colSums(mean_devs_nsHMC^2))
+# avg_mse_pMALA <- mean(colSums(mean_devs_pMALA^2))
+

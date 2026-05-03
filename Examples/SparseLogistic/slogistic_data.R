@@ -7,7 +7,7 @@ colnames(y) <- NULL
 alpha <- 2
 
 
-## Lipschitiz coefficient for the smooth part
+## Lipschitz coefficient for the smooth part
 xtx <- t(x) %*% x
 
 C_f <- eigen(xtx)$values[1]/4

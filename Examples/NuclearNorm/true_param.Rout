@@ -1,0 +1,107 @@
+
+R version 4.2.1 (2022-06-23) -- "Funny-Looking Kid"
+Copyright (C) 2022 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin17.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ######################################################################
+> ################# Nuclear Norm regression   ##########################
+> ######################################################################
+> 
+> library(Rcpp)
+> library(RcppArmadillo)
+> library(foreach)
+> library(mcmcse)
+> 
+> set.seed(1)
+> source("nn_data.R")
+> sourceCpp("nn_functions.cpp")
+> load("warmup_chain.Rdata")
+> 
+> iter <- 1e3
+> lamb_coeff <- 1e-4
+> eps_px <- 0.0075
+> L <- 10
+> 
+> 
+> parallel::detectCores()
+[1] 8
+> num_cores <- 4
+> doParallel::registerDoParallel(cores = num_cores)
+> reps <- 4
+> 
+> blat <- TRUE
+> output_nn <- foreach(b = 1:reps) %dopar% 
++   {
++     ## Run samplers
++     print(b)
++     
++     phmc_time <- system.time(phmc_run <- phmc_cpp(y=y, alpha = alpha_hat,lambda = lamb_coeff, sigma2 = sigma2_hat, 
++                                                   iter = iter, eps_hmc = eps_px, L=L, start = warmup_end_iter, blather = blat) )
++     
++     post_mean <- colMeans(phmc_run[[1]])
++     list(post_mean)
++   }
+[1] 1
+[1] 2
+[1] 3
+[1] 4
+Iter: Iter: 100100  Accept Rate:   Accept Rate: 0.71
+Iter: 0.63
+100  Accept Rate: 0.72
+Iter: 100  Accept Rate: 0.7
+Iter: 200  Accept Rate: 0.635
+Iter: 200  Accept Rate: 0.69
+Iter: 200  Accept Rate: 0.675
+Iter: 200  Accept Rate: 0.675
+Iter: 300  Accept Rate: 0.69
+Iter: 300  Accept Rate: 0.653333
+Iter: 300  Accept Rate: 0.696667
+Iter: 300  Accept Rate: 0.67
+Iter: 400  Accept Rate: 0.7025
+Iter: 400  Accept Rate: 0.6975
+Iter: 400  Accept Rate: 0.6675
+Iter: 400  Accept Rate: 0.6975
+Iter: 500  Accept Rate: 0.686
+Iter: 500  Accept Rate: 0.662
+Iter: 500  Accept Rate: 0.67
+Iter: 500  Accept Rate: 0.67
+Iter: 600  Accept Rate: 0.665
+Iter: 600  Accept Rate: 0.656667
+Iter: 600  Accept Rate: 0.67
+Iter: 600  Accept Rate: 0.671667
+Iter: Iter: 700700  Accept Rate:   Accept Rate: 0.66
+0.671429
+Iter: 700  Accept Rate: 0.66
+Iter: 700  Accept Rate: 0.662857
+Iter: 800  Accept Rate: 0.6675
+Iter: 800  Accept Rate: 0.6525
+Iter: 800  Accept Rate: 0.6575
+Iter: 800  Accept Rate: 0.66375
+Iter: 900  Accept Rate: 0.667778
+Iter: 900  Accept Rate: 0.655556
+Iter: 900  Accept Rate: 0.657778
+Iter: 900  Accept Rate: 0.661111
+Final Acceptance Rate: 0.661
+Final Acceptance Rate: 0.658
+Final Acceptance Rate: 0.654
+Final Acceptance Rate: 0.657
+> 
+> save(output_nn, file = "outputnn_true.Rdata")
+> 
+> proc.time()
+   user  system elapsed 
+ 31.389   1.752  21.780 

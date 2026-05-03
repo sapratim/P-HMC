@@ -196,7 +196,13 @@ arma::vec grad_logpiLamg(const arma::mat& X, const arma::vec& y,
   return -(grad_f + (beta - beta_prox) / lambda);
 }
 
-
+// gradient for the guo method
+// [[Rcpp::export]]
+arma::vec grad_logpiLam_guo(const arma::vec& beta, double lambda, double alpha) {
+  //arma::vec eta = X * beta;
+  arma::vec beta_prox = prox_phmc(beta, lambda, alpha);
+  return - (beta - beta_prox);
+}
 
 // Chaari's non-smooth method
 // [[Rcpp::export]]
@@ -312,6 +318,60 @@ List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alph
                       Named("accept_rate") = (double) accept / iter);
 }
 
+// Guo HMC 
+// [[Rcpp::export]]
+List guohmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,int iter,
+                double eps_hmc, int L, arma::vec start, bool blather = true) {
+  int p = start.n_elem;
+  arma::mat samples(iter, p);
+  arma::vec samp = start;
+  samples.row(0) = samp.t();
+  arma::mat mom_mat = arma::randn(iter, p);
+  int accept = 0;
+  
+  for (int i = 1; i < iter; ++i) {
+    arma::vec p_prop = mom_mat.row(i).t();
+    arma::vec p_current = p_prop + 0.5 * eps_hmc * grad_logpiLam_guo(samp, lambda, alpha);
+    arma::vec q_current = samp;
+    
+    for (int j = 0; j < L; ++j) {
+      samp = samp + eps_hmc * p_current;
+      arma::vec grad = grad_logpiLam_guo(samp, lambda, alpha);
+      if (j != L - 1)
+        p_current += eps_hmc * grad;
+    }
+    
+    p_current += 0.5 * eps_hmc * grad_logpiLam_guo(samp, lambda, alpha);
+    p_current = -p_current;
+    
+    double U_curr = -log_pi(X, y, q_current, alpha);
+    double U_prop = -log_pi(X, y, samp, alpha);
+    double K_curr = 0.5 * dot(p_prop, p_prop);
+    double K_prop = 0.5 * dot(p_current, p_current);
+    
+    double log_acc = U_curr - U_prop + K_curr - K_prop;
+    
+    if (std::log(R::runif(0, 1)) <= log_acc) {
+      samples.row(i) = samp.t();
+      accept++;
+    } else {
+      samples.row(i) = q_current.t();
+      samp = q_current;
+    }
+    
+    if(blather)
+    {
+      if (i % std::max(1, iter / 10) == 0) {
+        Rcpp::Rcout << "Iteration " << i
+                    << ", Acceptance rate so far: "
+                    << (double) accept / i << std::endl;
+      }
+    }
+  }
+  
+  return List::create(Named("samples") = samples,
+                      Named("accept_rate") = (double) accept / iter);
+}
 
 
 // [[Rcpp::export]]

@@ -4,7 +4,7 @@
 ############################################################################
 
 load("Output/outputslog.Rdata")
-
+load("Output/outputslogtruth.Rdata")
 
 output_slog[[1]]
 
@@ -55,3 +55,41 @@ legend("top",
        inset = c(0, -0.19),  # pushes legend into the top margin
        xpd = TRUE)               # allow drawing outside plot region
 dev.off()
+
+########################  Function for metrics  ########################
+
+alg_means <- lapply(output_slog, '[[', 1)    #### list of posterior means for all reps
+true_means <- do.call(cbind, lapply(output_slog_truth, '[[', 1))  #### actual means (dim x reps)
+truth_estimate <- rowMeans(true_means)
+
+names <- c("RWM", "pHMC", "myMALA", "nsHMC", "pMALA", "guoHMC")
+
+metric_fun <- function(name)# enter one of ("RWM","pHMC","myMALA","nsHMC","pMALA","guoHMC")
+{
+  i <- which(names == name)
+  
+  # posterior mean matrix (dim x reps)
+  mat_means <- sapply(alg_means, function(x) x[,i])
+  
+  # mean deviations for different reps
+  mean_devs_mat <- mat_means - truth_estimate
+  
+  # relative error
+  mean_re <- mean(sqrt(colSums(mean_devs_mat^2)) / sqrt(sum(truth_estimate^2))) # mean
+  max_re <-  max(sqrt(colSums(mean_devs_mat^2)) / sqrt(sum(truth_estimate^2))) # maximum
+  pooled_re <- sqrt((rowMeans(mat_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2)) # pooled
+  
+  # average mean square error
+  avg_mse_mat <- mean(colSums(mean_devs_mat^2))
+  
+  output <- list(mean_re, max_re, pooled_re, avg_mse_mat)
+  return(output)
+}
+
+rwm_output <- metric_fun("RWM")
+pHMC_output <- metric_fun("pHMC")
+myMALA_output <- metric_fun("myMALA")
+nsHMC_output <- metric_fun("nsHMC")
+pMALA_output <- metric_fun("pMALA")
+guoHMC_output <- metric_fun("guoHMC")
+
