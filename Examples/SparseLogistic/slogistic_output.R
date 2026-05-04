@@ -77,7 +77,7 @@ metric_fun <- function(name)# enter one of ("RWM","pHMC","myMALA","nsHMC","pMALA
   # relative error
   mean_re <- mean(sqrt(colSums(mean_devs_mat^2)) / sqrt(sum(truth_estimate^2))) # mean
   max_re <-  max(sqrt(colSums(mean_devs_mat^2)) / sqrt(sum(truth_estimate^2))) # maximum
-  pooled_re <- sqrt((rowMeans(mat_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2)) # pooled
+  pooled_re <- sqrt(sum(rowMeans(mat_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2)) # pooled
   
   # average mean square error
   avg_mse_mat <- mean(colSums(mean_devs_mat^2))
@@ -92,4 +92,18 @@ myMALA_output <- metric_fun("myMALA")
 nsHMC_output <- metric_fun("nsHMC")
 pMALA_output <- metric_fun("pMALA")
 guoHMC_output <- metric_fun("guoHMC")
+
+output_mat <- matrix(0, nrow = length(names), ncol = 4)
+
+output_mat[1,] <- sapply(rwm_output, rbind)
+output_mat[2,] <- sapply(pHMC_output, rbind)
+output_mat[3,] <- sapply(myMALA_output, rbind)
+output_mat[4,] <- sapply(nsHMC_output, rbind)
+output_mat[5,] <- sapply(pMALA_output, rbind)
+output_mat[6,] <- sapply(guoHMC_output, rbind)
+
+rownames(output_mat) <- c("RWM", "pHMC", "myMALA", "nsHMC", "pMALA", "guoHMC")
+colnames(output_mat) <- c("Mean Rel. Error", "Max Rel. Error", "Pooled Rel. Error", "Avg MSE")
+
+output_mat
 

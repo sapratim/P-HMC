@@ -27,7 +27,7 @@ doParallel::registerDoParallel(cores = num_cores)
 reps <- 100
 
 blat <- TRUE
-output_slog <- foreach(b = 1:reps) %dopar% 
+output_nn <- foreach(b = 1:reps) %dopar% 
 {
 ## Run samplers
   print(b)
@@ -67,4 +67,4 @@ output_slog <- foreach(b = 1:reps) %dopar%
   list(all_means, all_ess, all_time)
 }
 
-save(output_slog, file = "outputnn.Rdata")
+save(output_nn, file = "outputnn.Rdata")

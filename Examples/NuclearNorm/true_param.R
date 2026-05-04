@@ -12,7 +12,7 @@ source("nn_data.R")
 sourceCpp("nn_functions.cpp")
 load("warmup_chain.Rdata")
 
-iter <- 1e3
+iter <- 1e5
 lamb_coeff <- 1e-4
 eps_px <- 0.0075
 L <- 10

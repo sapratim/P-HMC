@@ -22,15 +22,14 @@ beta_start <- as.matrix(unname(logistic_fit ))
 
 L_px <- 10
 iter <- 1e6
-eps_ns <- 0.00014
 eps_p <-  0.00192
 
 
 #output_poisson <- list()
 parallel::detectCores()
-num_cores <- 59
+num_cores <- 4
 doParallel::registerDoParallel(cores = num_cores)
-reps <- 100
+reps <- 8
 
 output_slog_truth <- foreach(b = 1:reps) %dopar% 
   {

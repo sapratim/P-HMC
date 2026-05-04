@@ -29,7 +29,6 @@ eps_p <-  0.00192
 eps_guo <- 0.0001
 
 
-output_poisson <- list()
 parallel::detectCores()
 num_cores <- 10
 doParallel::registerDoParallel(cores = num_cores)
