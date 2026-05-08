@@ -28,6 +28,6 @@ for (i in 1:length(lambda_grid)) {
     cor(samp_mat[-1, j], samp_mat[-nrow(samp_mat), j])})
   acf_vec[i] <- mean(acf_lag1)
 }
-opt_lambda <- lambda_grid[which.min(acf_vec)]
+#opt_lambda <- lambda_grid[which.min(acf_vec)]
 
-save(opt_lambda, file = "Output/opt_lambda.Rdata")
+save(acf_vec, file = "Output/opt_lambda.Rdata")

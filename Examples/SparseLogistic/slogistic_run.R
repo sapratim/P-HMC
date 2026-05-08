@@ -23,16 +23,16 @@ beta_start <- as.matrix(unname(logistic_fit ))
 L_ns <- 10
 L_px <- 10
 L_guo <- 10
-iter <- 1e5
+iter <- 1e4
 eps_ns <- 0.00014
 eps_p <-  0.00192
 eps_guo <- 0.0001
 
 
 parallel::detectCores()
-num_cores <- 10
+num_cores <- 4
 doParallel::registerDoParallel(cores = num_cores)
-reps <- 100
+reps <- 4
 
 output_slog <- foreach(b = 1:reps) %dopar% 
 {
