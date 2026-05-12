@@ -23,7 +23,7 @@ lambda_grid <- seq(1e-5, 2, length = 100)
 
 L_ns <- ifelse(runif(1) <= 0.05, 1, 10)
 
-iter <- 1e3
+iter <- 2e3
 eps_ns <- 0.00014
 lag_max <- 1
 acf_vec <- numeric(length = length(lambda_grid))
@@ -35,11 +35,11 @@ for (i in 1:length(lambda_grid)) {
   samp_mat <- nshmc_run[[1]]
   acf_lag1 <- sapply(seq_len(ncol(samp_mat)), function(j) {
                           cor(samp_mat[-1, j], samp_mat[-nrow(samp_mat), j])})
-  acf_vec[i] <- mean(acf_lag1)
+  acf_vec[i] <- min(acf_lag1)
 }
-opt_lambda <- lambda_grid[which.min(acf_vec)]
+#opt_lambda <- lambda_grid[which.min(acf_vec)]
 
-save(opt_lambda, file = "Output/opt_lambda.Rdata")
+save(acf_vec, file = "Output/opt_lambda.Rdata")
 
 
 ###  Benchmark for faster simulation

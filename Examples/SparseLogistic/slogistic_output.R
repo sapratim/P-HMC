@@ -8,11 +8,11 @@ load("Output/outputslogtruth.Rdata")
 
 output_slog[[1]]
 
-all_ess <- lapply(output_slog, function(t) t[[1]])
+all_ess <- lapply(output_slog, function(t) t[[2]])
 avg_ess <- Reduce("+", all_ess)/length(output_slog)
 avg_ess <- round(avg_ess, 5)
 
-all_time <- lapply(output_slog, function(t) t[[2]])
+all_time <- lapply(output_slog, function(t) t[[3]])
 avg_time <- Reduce("+", all_time)/length(output_slog)
 avg_time 
 

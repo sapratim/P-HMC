@@ -23,16 +23,17 @@ beta_start <- as.matrix(unname(logistic_fit ))
 L_ns <- 10
 L_px <- 10
 L_guo <- 10
-iter <- 1e4
+iter <- 1e3
 eps_ns <- 0.00014
 eps_p <-  0.00192
 eps_guo <- 0.0001
 
 
 parallel::detectCores()
-num_cores <- 4
+num_cores <- 10
 doParallel::registerDoParallel(cores = num_cores)
-reps <- 4
+reps <- 100
+blat <- FALSE
 
 output_slog <- foreach(b = 1:reps) %dopar% 
 {
@@ -42,24 +43,24 @@ output_slog <- foreach(b = 1:reps) %dopar%
   L_px <- ifelse(runif(1) <= 0.05, 1, 10)
   L_guo <- ifelse(runif(1) <= 0.05, 1, 10)
   nshmc_time <- system.time(nshmc_run <- nshmc_cpp(x, y, lambda = 1, alpha = alpha, iter = iter,
-                             eps_hmc = eps_ns, L = L_ns, start = beta_start, blather = FALSE))
+                             eps_hmc = eps_ns, L = L_ns, start = beta_start, blather = blat))
   
   eps <-  0.0018
   pmala_time <- system.time(pmala_run <- nshmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-                            eps_hmc = eps, L = 1, start = beta_start, blather = FALSE))
+                            eps_hmc = eps, L = 1, start = beta_start, blather = blat))
   
   phmc_time <- system.time(phmc_run <- phmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_p, 
-                          L = L_px, start = beta_start, alpha = alpha, blather = FALSE))
+                          L = L_px, start = beta_start, alpha = alpha, blather = blat))
   
   guohmc_time <- system.time(guohmc_run <- guohmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_guo, 
-                          L = L_guo, start = beta_start, alpha = alpha, blather = FALSE))
+                          L = L_guo, start = beta_start, alpha = alpha, blather = blat))
   
   eps <-  0.002
   mymala_time <- system.time(mymala_run <- phmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-                            eps_hmc = eps, L = 1, start = beta_start, blather = FALSE))
+                            eps_hmc = eps, L = 1, start = beta_start, blather = blat))
   
   rwm_time <- system.time(rwm_run <- rwm_cpp(x, y, iter = iter, 
-                             h = .005 ,start = beta_start, alpha = alpha, blather = FALSE))
+                             h = .004 ,start = beta_start, alpha = alpha, blather = blat))
 
   # Means
   all_means <- cbind(colMeans(rwm_run[[1]]), colMeans(phmc_run[[1]]), colMeans(mymala_run[[1]]),
