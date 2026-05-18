@@ -1,39 +1,14 @@
-################### PIMA Indian diabetes dataset ###################
-data <- MASS::Boston 
-x <- as.matrix(data[,c(1:13)])
-y <- as.matrix(data[,-c(1:13)])
-colnames(x) <- NULL
-colnames(y) <- NULL
-alpha <- 2
+####################
+### For 1D synthetic signal
 
-# ## Lipschitz coefficient for the smooth part
-# xtx <- t(x) %*% x
-# 
-# C_f <- eigen(xtx)$values[1]/4
-# 
-# 1/C_f
-#
-# 
-# library(tidyverse)
-# 
-# # If your data 'df' has columns: Subject, Time, Channel, Amplitude
-# eeg_wide <- eegdata %>%
-#   pivot_wider(names_from = Channel, values_from = Amplitude)
-# 
-# # Now your data looks like this:
-# # Subject | Time | Fz  | Cz  | Pz 
-# # 1       | 100  | -2.5| 1.2 | 4.8
-# 
-# # Now you can run your Multiple Regression
-# model <- lm(TargetVariable ~ Fz + Cz + Pz, data = df_wide)
-# 
-# ###############
-# wide_eeg <- eegdata %>%
-#   pivot_wider(
-#     id_cols = c(subject, group, condition, trial, time),
-#     names_from = channel,
-#     values_from = voltage,
-#     values_fn = mean
-#   )
-
-
+set.seed(123)
+N <- 512
+M <- 120
+non_zero_t_count <- 20
+t_index <- sample(c(1:512), size = non_zero_t_count)
+w_truth <- numeric(length = N)
+w_truth[t_index] <- rnorm(length(t_index))
+Phi_mat <- t(apply(matrix(0, nrow = M, ncol = N), 1, function(x) {x <- rnorm(N)
+                                                               x <- x/sqrt(sum(x^2))}))
+add_noise <- rt(M, 5)
+y <- Phi_mat %*% w_truth + add_noise

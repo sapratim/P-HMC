@@ -69,24 +69,20 @@ using namespace arma;
 
 // [[Rcpp::export]]
 // Gradient of f for Durmus
-arma::vec gradf_dur(const arma::mat& X,const arma::vec& y,
-                            const arma::vec& beta,const double sigma2)
+arma::vec gradf_dur(const arma::vec& w, const arma::vec& y,
+                    const arma::mat& B, double nu)
 {
-  // residuals
-  arma::vec r = y - X * beta;
+  // residual vector
+  arma::vec r = y - B * w;
   
-  // exponential weights
-  arma::vec w = exp(-(square(r)) / (2.0 * sigma2));
+  // element-wise: r_i / (nu + r_i^2)
+  arma::vec weights = r / (nu + r % r);
   
-  // weighted residuals
-  arma::vec wr = w % r;
-  
-  // gradient
-  arma::vec grad = -(1.0 / sigma2) * (X.t() * wr);
+  // gradient: -2 * B^T * weights
+  arma::vec grad = -2.0 * B.t() * weights;
   
   return grad;
 }
-
 // arma::vec gradf_dur(const arma::vec& z, const arma::mat& x, const arma::vec& y) {
 //   arma::vec xz = x * z;
 //   arma::vec sigmoid = 1 / (1 + exp(-xz));
@@ -96,148 +92,56 @@ arma::vec gradf_dur(const arma::mat& X,const arma::vec& y,
 
 // log target
 // [[Rcpp::export]]
-double log_pi(const arma::mat& X, const arma::vec& y, 
-              const arma::vec& beta,const double sigma2,const double alpha)
+double log_pi(const arma::vec& w, const arma::vec& y, const arma::mat& B,
+               double nu, double alpha)
 {
   // residuals
-  arma::vec r = y - X * beta;
+  arma::vec r = y - B * w;
   
-  // exponential term
-  arma::vec exp_term = exp(-(square(r)) / (2.0 * sigma2));
+  // first term:
+  // sum log(1 + r_i^2 / (nu * sigma^2))
+  double log_term = sum(log(1.0 + square(r) / nu ));
   
   // L1 penalty
-  double penalty = alpha * accu(abs(beta));
+  double penalty = alpha * norm(w, 1);
   
-  // log-posterior value
-  double value = accu(exp_term) - penalty;
-  
-  return value;
+  // negative objective
+  return -(log_term + penalty);
 }
 
-// double log_pi(const arma::mat& X, const arma::vec& y, const arma::vec& beta, double alpha) {
-//   arma::vec eta = X * beta;
-//   arma::vec loglik = y % log1p(exp(-eta)) + (1 - y) % (eta + log1p(exp(-eta)));
-//   double penalty = alpha * sum(abs(beta));
-//   return -sum(loglik) - penalty;
-// }
-
 // soft thresholding function
-
 arma::vec soft_threshold(const arma::vec& z, double threshold) {
   return arma::sign(z) % arma::max(arma::abs(z) - threshold, arma::zeros(z.n_elem));
 }
-// arma::vec soft_threshold(const arma::vec& u, double pen) {
-//   arma::vec out = u;
-//   for (unsigned int i = 0; i < u.n_elem; ++i) {
-//     if (u[i] > pen)
-//       out[i] = u[i] - pen;
-//     else if (u[i] < -pen)
-//       out[i] = u[i] + pen;
-//     else
-//       out[i] = 0.0;
-//   }
-//   return out;
-// }
-
-
-// calculate gradient of the ns-hmc method
-// // [[Rcpp::export]]
-// arma::vec grad_logpiLam(const arma::mat& X, const arma::vec& y,
-//                         const arma::vec& beta, double lambda,
-//                         double alpha, double step_size = 0.1,
-//                         int max_iter = 100, double tol = 1e-6) {
-//   
-//   arma::vec beta_prox = calc_prox_fista(beta, X, y, lambda, alpha, step_size = .1);
-//   return -(beta - beta_prox) / lambda;
-// }
 
 // proximal mapping for phmc
 
-arma::vec prox_phmc(const arma::vec& beta, double lambda, double alpha) {
-  return soft_threshold(beta, lambda * alpha);
+arma::vec prox_phmc(const arma::vec& w, double lambda, double alpha) {
+  return soft_threshold(w, lambda * alpha);
 }
 
 // gradient of the partial proximal methods
 // [[Rcpp::export]]
-arma::vec grad_logpiLamg(const arma::mat& X, const arma::vec& y,
-                   const arma::vec& beta, double lambda, double alpha, const double sigma2) {
+arma::vec grad_logpiLamg(const arma::mat& B, const arma::vec& y,
+                         const arma::vec& w, double lambda, double alpha, double nu) {
   //arma::vec eta = X * beta;
-  arma::vec grad_f = gradf_dur(X, y, beta, sigma2); // X.t() * (1.0 / (1.0 + exp(-eta)) - y) / X.n_rows;
-  arma::vec beta_prox = prox_phmc(beta, lambda, alpha);
-  return -(grad_f + (beta - beta_prox) / lambda);
+  arma::vec grad_f = gradf_dur(w, y, B, nu); 
+  arma::vec w_prox = prox_phmc(w, lambda, alpha);
+  return -(grad_f + (w - w_prox) / lambda);
 }
 
 // gradient for the guo method
 // [[Rcpp::export]]
-arma::vec grad_logpiLam_guo(const arma::vec& beta, double lambda, double alpha) {
+arma::vec grad_logpiLam_guo(const arma::vec& w, double lambda, double alpha) {
   //arma::vec eta = X * beta;
-  arma::vec beta_prox = prox_phmc(beta, lambda, alpha);
-  return - (beta - beta_prox);
+  arma::vec w_prox = prox_phmc(w, lambda, alpha);
+  return - (w - w_prox);
 }
 
-// // Chaari's non-smooth method
-// // [[Rcpp::export]]
-// List nshmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,
-//                int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
-//   int p = start.n_elem;
-//   arma::mat samples(iter, p);
-//   arma::vec samp = start;
-//   samples.row(0) = samp.t();
-//   arma::mat mom_mat = arma::randn(iter, p);
-//   int accept = 0;
-//   
-//   for (int i = 1; i < iter; ++i) {
-//     arma::vec p_prop = mom_mat.row(i).t();
-//     arma::vec p_current = p_prop - 0.5 * eps_hmc * grad_logpiLam(X, y, samp, lambda, alpha);
-//     arma::vec q_current = samp;
-//     
-//     for (int j = 0; j < L; ++j) {
-//       samp = samp + eps_hmc * p_current;
-//       arma::vec grad = grad_logpiLam(X, y, samp, lambda, alpha);
-//       if (j != L - 1)
-//         p_current -= eps_hmc * grad;
-//     }
-//     
-//     p_current -= 0.5 * eps_hmc * grad_logpiLam(X, y, samp, lambda, alpha);
-//     p_current = -p_current;
-//     
-//     double U_curr = -log_pi(X, y, q_current, alpha);
-//     double U_prop = -log_pi(X, y, samp, alpha);
-//     double K_curr = 0.5 * dot(p_prop, p_prop);
-//     double K_prop = 0.5 * dot(p_current, p_current);
-//     
-//     double log_acc = U_curr - U_prop + K_curr - K_prop;
-//     
-//     if (std::log(R::runif(0, 1)) <= log_acc) {
-//       samples.row(i) = samp.t();
-//       accept++;
-//     } else {
-//       samples.row(i) = q_current.t();
-//       samp = q_current;
-//     }
-//     
-//     if(blather)
-//     {
-//       if (i % std::max(1, iter / 10) == 0) {
-//         Rcpp::Rcout << "Iteration " << i
-//                     << ", Acceptance rate so far: "
-//                     << (double) accept / i << std::endl;
-//       }
-//     }
-//   }
-//   
-//   return List::create(Named("samples") = samples,
-//                       Named("accept_rate") = (double) accept / iter);
-// }
-// 
-// 
-
-
-
-// Proximal HMC (paritial proximal)
+// Proximal HMC (partial proximal)
 // [[Rcpp::export]]
-List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,
-              int iter, double eps_hmc, int L, const double sigma2, arma::vec start, bool blather = true) {
+List phmc_cpp(const arma::mat& B, const arma::vec& y, double lambda, double alpha,
+              int iter, double eps_hmc, int L, double nu, arma::vec start, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -247,21 +151,21 @@ List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alph
   
   for (int i = 1; i < iter; ++i) {
     arma::vec p_prop = mom_mat.row(i).t();
-    arma::vec p_current = p_prop + 0.5 * eps_hmc * grad_logpiLamg(X, y, samp, lambda, alpha, sigma2);
+    arma::vec p_current = p_prop + 0.5 * eps_hmc * grad_logpiLamg(B, y, samp, lambda, alpha, nu);
     arma::vec q_current = samp;
     
     for (int j = 0; j < L; ++j) {
       samp = samp + eps_hmc * p_current;
-      arma::vec grad = grad_logpiLamg(X, y, samp, lambda, alpha, sigma2);
+      arma::vec grad = grad_logpiLamg(B, y, samp, lambda, alpha, nu);
       if (j != L - 1)
         p_current += eps_hmc * grad;
     }
     
-    p_current += 0.5 * eps_hmc * grad_logpiLamg(X, y, samp, lambda, alpha, sigma2);
+    p_current += 0.5 * eps_hmc * grad_logpiLamg(B, y, samp, lambda, alpha, nu);
     p_current = -p_current;
     
-    double U_curr = -log_pi(X, y, q_current, sigma2, alpha);
-    double U_prop = -log_pi(X, y, samp, sigma2, alpha);
+    double U_curr = -log_pi(q_current, y, B, nu, alpha);
+    double U_prop = -log_pi(samp, y, B, nu, alpha);
     double K_curr = 0.5 * dot(p_prop, p_prop);
     double K_prop = 0.5 * dot(p_current, p_current);
     
@@ -291,8 +195,8 @@ List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alph
 
 // Guo HMC 
 // [[Rcpp::export]]
-List guohmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,int iter,
-                double eps_hmc, int L, const double sigma2, arma::vec start, bool blather = true) {
+List guohmc_cpp(const arma::mat& B, const arma::vec& y, double lambda, double alpha,int iter,
+                double eps_hmc, int L, double nu, arma::vec start, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -315,8 +219,8 @@ List guohmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double al
     p_current += 0.5 * eps_hmc * grad_logpiLam_guo(samp, lambda, alpha);
     p_current = -p_current;
     
-    double U_curr = -log_pi(X, y, q_current, sigma2, alpha);
-    double U_prop = -log_pi(X, y, samp, sigma2, alpha);
+    double U_curr = -log_pi(q_current, y, B, nu, alpha);
+    double U_prop = -log_pi(samp, y, B, nu, alpha);
     double K_curr = 0.5 * dot(p_prop, p_prop);
     double K_prop = 0.5 * dot(p_current, p_current);
     
@@ -346,8 +250,8 @@ List guohmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double al
 
 
 // [[Rcpp::export]]
-List rwm_cpp(const arma::mat& X, const arma::vec& y, int iter,double h, arma::vec start,
-                                double alpha, const double sigma2, bool blather = true) {
+List rwm_cpp(const arma::mat& B, const arma::vec& y, int iter,double h, arma::vec start,
+                                double alpha, double nu, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -356,7 +260,7 @@ List rwm_cpp(const arma::mat& X, const arma::vec& y, int iter,double h, arma::ve
   
   for (int i = 1; i < iter; ++i) {
     arma::vec prop = samp + h * arma::randn<arma::vec>(p);
-    double logr = log_pi(X, y, prop, sigma2, alpha) - log_pi(X, y, samp, sigma2, alpha);
+    double logr = log_pi(prop, y, B, nu, alpha) - log_pi(samp, y, B, nu, alpha);
     
     if (std::log(R::runif(0, 1)) <= logr) {
       samples.row(i) = prop.t();

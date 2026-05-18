@@ -13,35 +13,13 @@ library(doParallel)
 source("robustreg_data.R")
 sourceCpp("robustreg_functions.cpp")
 
-sigma2 <- 0.1
-# gradf_dur_R = function(X, y, beta, sigma2)
-# {
-#   X <- as.matrix(X)
-#   r <- y - X%*%beta
-#   exp_mat <- diag(c(exp(-(r^2)/(2*sigma2))), nrow = length(r), ncol = length(r))
-#   grad <- - (1/sigma2)*(t(X) %*% exp_mat %*% r)
-#   return(grad)
-# }
-# 
-# log_pi_R = function(X, y, beta, sigma2, alpha)
-# {
-#   X <- as.matrix(X)
-#   r <- y - X%*%beta
-#   exp_term <- c(exp(-(r^2)/(2*sigma2)))
-#   value <-  sum(exp_term) - alpha*sum(abs(beta))
-#   return(value)
-# }
-
-fit <- glmnet::glmnet(x, y, family = "gaussian", alpha = 1, intercept = FALSE,
-                      standardize = FALSE, lambda = alpha/length(y), nlambda = 1)$beta
-beta_start <- as.matrix(unname(fit))
+w_start <- w_truth + 0.5
 
 L_px <- 10
 L_guo <- 10
 iter <- 1e3
-eps_p <-  0.0002
-eps_guo <- 0.0001
-
+eps_p <- 0.085
+eps_guo <- 0.003
 
 parallel::detectCores()
 num_cores <- 4
@@ -55,18 +33,18 @@ output_rreg <- foreach(b = 1:reps) %dopar%
     L_px <- ifelse(runif(1) <= 0.05, 1, 10)
     L_guo <- ifelse(runif(1) <= 0.05, 1, 10)
     
-    phmc_time <- system.time(phmc_run <- phmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_p, 
-                               L = L_px, sigma2 = sigma2, start = beta_start, alpha = alpha, blather = FALSE))
+    phmc_time <- system.time(phmc_run <- phmc_cpp(Phi_mat, y, lambda = .01, iter = iter, eps_hmc = eps_p, 
+                                      L = L_px, nu = 3, start = w_start, alpha = alpha, blather = T))
     
-    guohmc_time <- system.time(guohmc_run <- guohmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_guo, 
-                              L = L_guo, sigma2 = sigma2, start = beta_start, alpha = alpha, blather = FALSE))
+    guohmc_time <- system.time(guohmc_run <- guohmc_cpp(Phi_mat, y, lambda = .01, iter = iter, eps_hmc = eps_guo, 
+                                        L = L_guo, nu = nu, start = w_start, alpha = alpha, blather = T))
     
     eps <-  0.0005
-    mymala_time <- system.time(mymala_run <- phmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-                           eps_hmc = eps, L = 1, sigma2 = sigma2, start = beta_start, blather = FALSE))
+    mymala_time <- system.time(mymala_run <- phmc_cpp(Phi_mat, y, lambda = eps/2, iter = iter, eps_hmc = eps, 
+                                    L = 1, nu = 3, start = w_start, alpha = alpha, blather = T))
     
-    rwm_time <- system.time(rwm_run <- rwm_cpp(x, y, iter = iter, h = .0007 ,
-                        start = beta_start, alpha = alpha, sigma2 = sigma2, blather = FALSE))
+    rwm_time <- system.time(rwm_run <- rwm_cpp(Phi_mat, y, iter = iter, h = .075 ,
+                   start = w_start, alpha = alpha, nu = nu, blather = T))
     
     # Means
     all_means <- cbind(colMeans(rwm_run[[1]]), colMeans(phmc_run[[1]]), colMeans(mymala_run[[1]]),
