@@ -1,0 +1,461 @@
+
+R version 4.4.3 (2025-02-28) -- "Trophy Case"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ############################################################################
+> ################## Robust regression (L2E criterion) #######################
+> ############################################################################
+> 
+> set.seed(123)
+> library(mcmcse)
+> library(Matrix)
+> library(ks)
+> library(stats)
+> library(Rcpp)
+> library(doParallel)
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: parallel
+> source("robustreg_data.R")
+> sourceCpp("robustreg_functions.cpp")
+> 
+> w_start <- w_truth + rnorm(1, 0, 0.1)
+> iter <- 1e5
+> eps_p <- 0.00012
+> eps_guo <- 0.0001
+> alpha <- 100
+> 
+> parallel::detectCores()
+[1] 64
+> num_cores <- 10
+> doParallel::registerDoParallel(cores = num_cores)
+> reps <- 10
+> 
+> output_rreg <- foreach(b = 1:reps) %dopar% 
++   {
++     ## Run samplers
++     print(b)
++     L_px <- ifelse(runif(1) <= 0.05, 1, 10)
++     L_guo <- ifelse(runif(1) <= 0.05, 1, 10)
++     
++     phmc_time <- system.time(phmc_run <- phmc_cpp(Phi_mat, y, lambda = .0089, iter = iter, eps_hmc = eps_p, 
++                           L = L_px, nu = nu, start = w_start, alpha = alpha, blather = T))
++     
++     guohmc_time <- system.time(guohmc_run <- guohmc_cpp(Phi_mat, y, lambda = .0089, iter = iter, eps_hmc = eps_guo, 
++              L = L_guo, nu = nu, start = w_start, alpha = alpha, blather = T))
++     
++     eps <-  0.0012
++     mymala_time <- system.time(mymala_run <- phmc_cpp(Phi_mat, y, lambda = eps/2, iter = iter, eps_hmc = eps, 
++               L = 1, nu = nu, start = w_start, alpha = alpha, blather = T))
++     
++     rwm_time <- system.time(rwm_run <- rwm_cpp(Phi_mat, y, iter = iter, h = .004 ,
++                 start = w_start, alpha = alpha, nu = nu, blather = T))
++     
++     # Means
++     all_means <- cbind(colMeans(rwm_run[[1]]), colMeans(phmc_run[[1]]), 
++                        colMeans(mymala_run[[1]]),colMeans(guohmc_run[[1]]))
++     colnames(all_means) <- c("RWM", "pHMC", "myMALA", "guoHMC")
++     
++     # ESS
++     all_ess <- cbind(ess(rwm_run[[1]]),ess(phmc_run[[1]]), 
++                      ess(mymala_run[[1]]), ess(guohmc_run[[1]]))
++     colnames(all_ess) <- c("RWM", "pHMC", "myMALA", "guoHMC")
++     
++     all_time <- c(rwm_time[3], phmc_time[3], 
++                   mymala_time[3], guohmc_time[3])
++     names(all_time) <- c("RWM", "pHMC", "myMALA", "guoHMC")
++     
++     list(all_means, all_ess, all_time)
++   }
+[1] 1
+[1] 2
+[1] 3
+[1] 4
+[1] 5
+[1] 6
+[1] 7
+[1] 8
+[1] 9
+[1] 10
+Iteration 10000, Acceptance rate so far: 0.6442
+Iteration 10000, Acceptance rate so far: 0.6409
+Iteration 10000, Acceptance rate so far: 0.6471
+Iteration 10000, Acceptance rate so far: 0.6435
+Iteration 10000, Acceptance rate so far: 0.649
+Iteration 10000, Acceptance rate so far: 0.6369
+Iteration 10000, Acceptance rate so far: 0.6589
+Iteration 10000, Acceptance rate so far: 0.6391
+Iteration 10000, Acceptance rate so far: 0.6355
+Iteration 10000, Acceptance rate so far: 0.6392
+Iteration 20000, Acceptance rate so far: 0.47365
+Iteration 20000, Acceptance rate so far: 0.4712
+Iteration 20000, Acceptance rate so far: 0.47695
+Iteration 20000, Acceptance rate so far: 0.47505
+Iteration 20000, Acceptance rate so far: 0.47705
+Iteration 20000, Acceptance rate so far: 0.469
+Iteration 20000, Acceptance rate so far: 0.48535
+Iteration 20000, Acceptance rate so far: 0.46805
+Iteration 20000, Acceptance rate so far: 0.46275
+Iteration 20000, Acceptance rate so far: 0.4742
+Iteration 30000, Acceptance rate so far: 0.391833
+Iteration 30000, Acceptance rate so far: 0.390433
+Iteration 30000, Acceptance rate so far: 0.3952
+Iteration 30000, Acceptance rate so far: 0.390567
+Iteration 30000, Acceptance rate so far: 0.393267
+Iteration 30000, Acceptance rate so far: 0.3816
+Iteration 30000, Acceptance rate so far: 0.3946
+Iteration 30000, Acceptance rate so far: 0.3807
+Iteration 30000, Acceptance rate so far: 0.379467
+Iteration 30000, Acceptance rate so far: 0.385133
+Iteration 40000, Acceptance rate so far: 0.346325
+Iteration 40000, Acceptance rate so far: 0.348475
+Iteration 40000, Acceptance rate so far: 0.349675
+Iteration 40000, Acceptance rate so far: 0.34525
+Iteration 40000, Acceptance rate so far: 0.339175
+Iteration 40000, Acceptance rate so far: 0.343825
+Iteration 40000, Acceptance rate so far: 0.34765
+Iteration 40000, Acceptance rate so far: 0.342425
+Iteration 40000, Acceptance rate so far: 0.3333
+Iteration 40000, Acceptance rate so far: 0.33655
+Iteration 50000, Acceptance rate so far: 0.31822
+Iteration 50000, Acceptance rate so far: 0.32022
+Iteration 50000, Acceptance rate so far: 0.31558
+Iteration 50000, Acceptance rate so far: 0.31462
+Iteration 50000, Acceptance rate so far: 0.3129
+Iteration 50000, Acceptance rate so far: 0.31424
+Iteration 50000, Acceptance rate so far: 0.31728
+Iteration 50000, Acceptance rate so far: 0.31246
+Iteration 50000, Acceptance rate so far: 0.3061
+Iteration 50000, Acceptance rate so far: 0.31008
+Iteration 60000, Acceptance rate so far: 0.297133
+Iteration 60000, Acceptance rate so far: 0.300767
+Iteration 60000, Acceptance rate so far: 0.294333
+Iteration 60000, Acceptance rate so far: 0.297267
+Iteration 60000, Acceptance rate so far: 0.294683
+Iteration 60000, Acceptance rate so far: 0.2984
+Iteration 60000, Acceptance rate so far: 0.294733
+Iteration 60000, Acceptance rate so far: 0.293917
+Iteration 60000, Acceptance rate so far: 0.29235
+Iteration 60000, Acceptance rate so far: 0.29195
+Iteration 70000, Acceptance rate so far: 0.283371
+Iteration 70000, Acceptance rate so far: 0.286171
+Iteration 70000, Acceptance rate so far: 0.279357
+Iteration 70000, Acceptance rate so far: 0.283314
+Iteration 70000, Acceptance rate so far: 0.282871
+Iteration 70000, Acceptance rate so far: 0.282843
+Iteration 70000, Acceptance rate so far: 0.282614
+Iteration 70000, Acceptance rate so far: 0.280929
+Iteration 70000, Acceptance rate so far: 0.280914
+Iteration 70000, Acceptance rate so far: 0.276571
+Iteration 80000, Acceptance rate so far: 0.274012
+Iteration 80000, Acceptance rate so far: 0.2764
+Iteration 80000, Acceptance rate so far: 0.2692
+Iteration 80000, Acceptance rate so far: 0.272838
+Iteration 80000, Acceptance rate so far: 0.271775
+Iteration 80000, Acceptance rate so far: 0.270275
+Iteration 80000, Acceptance rate so far: 0.270763
+Iteration 80000, Acceptance rate so far: 0.26945
+Iteration 80000, Acceptance rate so far: 0.270263
+Iteration 80000, Acceptance rate so far: 0.266688
+Iteration 90000, Acceptance rate so far: 0.264911
+Iteration 90000, Acceptance rate so far: 0.265544
+Iteration 90000, Acceptance rate so far: 0.261611
+Iteration 90000, Acceptance rate so far: 0.262989
+Iteration 90000, Acceptance rate so far: 0.264967
+Iteration 90000, Acceptance rate so far: 0.2639
+Iteration 90000, Acceptance rate so far: 0.261978
+Iteration 90000, Acceptance rate so far: 0.260756
+Iteration 90000, Acceptance rate so far: 0.261256
+Iteration 90000, Acceptance rate so far: 0.258311
+Iteration 10000, Acceptance rate so far: 0.6353
+Iteration 10000, Acceptance rate so far: 0.6439
+Iteration 10000, Acceptance rate so far: 0.6433
+Iteration 10000, Acceptance rate so far: 0.6484
+Iteration 20000, Acceptance rate so far: 0.5628
+Iteration 20000, Acceptance rate so far: 0.563
+Iteration 20000, Acceptance rate so far: 0.5681
+Iteration 20000, Acceptance rate so far: 0.5675
+Iteration 30000, Acceptance rate so far: 0.483267
+Iteration 30000, Acceptance rate so far: 0.488267
+Iteration 10000, Acceptance rate so far: 0.6397
+Iteration 30000, Acceptance rate so far: 0.489733
+Iteration 10000, Acceptance rate so far: 0.6381
+Iteration 10000, Acceptance rate so far: 0.643
+Iteration 30000, Acceptance rate so far: 0.489
+Iteration 10000, Acceptance rate so far: 0.6466
+Iteration 40000, Acceptance rate so far: 0.4376
+Iteration 10000, Acceptance rate so far: 0.6334
+Iteration 40000, Acceptance rate so far: 0.438375
+Iteration 10000, Acceptance rate so far: 0.6426
+Iteration 20000, Acceptance rate so far: 0.5582
+Iteration 40000, Acceptance rate so far: 0.43915
+Iteration 20000, Acceptance rate so far: 0.56025
+Iteration 20000, Acceptance rate so far: 0.5622
+Iteration 40000, Acceptance rate so far: 0.43625
+Iteration 20000, Acceptance rate so far: 0.5633
+Iteration 50000, Acceptance rate so far: 0.41134
+Iteration 20000, Acceptance rate so far: 0.5537
+Iteration 50000, Acceptance rate so far: 0.40916
+Iteration 20000, Acceptance rate so far: 0.5629
+Iteration 50000, Acceptance rate so far: 0.41036
+Iteration 30000, Acceptance rate so far: 0.485733
+Iteration 30000, Acceptance rate so far: 0.4822
+Iteration 50000, Acceptance rate so far: 0.40482
+Iteration 30000, Acceptance rate so far: 0.485867
+Iteration 30000, Acceptance rate so far: 0.4894
+Iteration 60000, Acceptance rate so far: 0.38865
+Iteration 30000, Acceptance rate so far: 0.482933
+Iteration 60000, Acceptance rate so far: 0.388233
+Iteration 30000, Acceptance rate so far: 0.493567
+Iteration 60000, Acceptance rate so far: 0.386867
+Iteration 40000, Acceptance rate so far: 0.4423
+Iteration 40000, Acceptance rate so far: 0.43925
+Iteration 60000, Acceptance rate so far: 0.38395
+Iteration 40000, Acceptance rate so far: 0.4426
+Iteration 70000, Acceptance rate so far: 0.375529
+Iteration 40000, Acceptance rate so far: 0.440125
+Iteration 40000, Acceptance rate so far: 0.438
+Iteration 70000, Acceptance rate so far: 0.373843
+Iteration 40000, Acceptance rate so far: 0.446425
+Iteration 70000, Acceptance rate so far: 0.371729
+Iteration 50000, Acceptance rate so far: 0.41308
+Iteration 50000, Acceptance rate so far: 0.40984
+Iteration 70000, Acceptance rate so far: 0.370229
+Iteration 50000, Acceptance rate so far: 0.40962
+Iteration 80000, Acceptance rate so far: 0.36525
+Iteration 50000, Acceptance rate so far: 0.41108
+Iteration 80000, Acceptance rate so far: 0.36185
+Iteration 50000, Acceptance rate so far: 0.40776
+Iteration 50000, Acceptance rate so far: 0.41444
+Iteration 80000, Acceptance rate so far: 0.361138
+Iteration 60000, Acceptance rate so far: 0.392983
+Iteration 60000, Acceptance rate so far: 0.391267
+Iteration 80000, Acceptance rate so far: 0.360025
+Iteration 60000, Acceptance rate so far: 0.386467
+Iteration 90000, Acceptance rate so far: 0.357078
+Iteration 60000, Acceptance rate so far: 0.390867
+Iteration 90000, Acceptance rate so far: 0.352867
+Iteration 60000, Acceptance rate so far: 0.38635
+Iteration 60000, Acceptance rate so far: 0.393133
+Iteration 90000, Acceptance rate so far: 0.350011
+Iteration 70000, Acceptance rate so far: 0.378671
+Iteration 70000, Acceptance rate so far: 0.375329
+Iteration 90000, Acceptance rate so far: 0.350644
+Iteration 70000, Acceptance rate so far: 0.371757
+Iteration 70000, Acceptance rate so far: 0.375743
+Iteration 70000, Acceptance rate so far: 0.373029
+Iteration 70000, Acceptance rate so far: 0.379143
+Iteration 80000, Acceptance rate so far: 0.366475
+Iteration 80000, Acceptance rate so far: 0.364488
+Iteration 80000, Acceptance rate so far: 0.3622
+Iteration 80000, Acceptance rate so far: 0.365488
+Iteration 80000, Acceptance rate so far: 0.360637
+Iteration 80000, Acceptance rate so far: 0.367412
+Iteration 90000, Acceptance rate so far: 0.357322
+Iteration 90000, Acceptance rate so far: 0.354489
+Iteration 90000, Acceptance rate so far: 0.352422
+Iteration 90000, Acceptance rate so far: 0.357422
+Iteration 90000, Acceptance rate so far: 0.350344
+Iteration 90000, Acceptance rate so far: 0.357233
+Iteration 10000, Acceptance rate so far: 0.5347
+Iteration 10000, Acceptance rate so far: 0.5362
+Iteration 10000, Acceptance rate so far: 0.5467
+Iteration 10000, Acceptance rate so far: 0.5409
+Iteration 10000, Acceptance rate so far: 0.5329
+Iteration 10000, Acceptance rate so far: 0.5264
+Iteration 10000, Acceptance rate so far: 0.5348
+Iteration 10000, Acceptance rate so far: 0.5329
+Iteration 10000, Acceptance rate so far: 0.5394
+Iteration 20000, Acceptance rate so far: 0.39505
+Iteration 10000, Acceptance rate so far: 0.5435
+Iteration 20000, Acceptance rate so far: 0.4147
+Iteration 20000, Acceptance rate so far: 0.42015
+Iteration 20000, Acceptance rate so far: 0.41085
+Iteration 20000, Acceptance rate so far: 0.4056
+Iteration 20000, Acceptance rate so far: 0.4008
+Iteration 20000, Acceptance rate so far: 0.40415
+Iteration 20000, Acceptance rate so far: 0.4016
+Iteration 30000, Acceptance rate so far: 0.356667
+Iteration 20000, Acceptance rate so far: 0.40625
+Iteration 20000, Acceptance rate so far: 0.40765
+Iteration 30000, Acceptance rate so far: 0.375033
+Iteration 30000, Acceptance rate so far: 0.3654
+Iteration 30000, Acceptance rate so far: 0.3603
+Iteration 30000, Acceptance rate so far: 0.362267
+Iteration 30000, Acceptance rate so far: 0.362867
+Iteration 30000, Acceptance rate so far: 0.360967
+Iteration 40000, Acceptance rate so far: 0.335375
+Iteration 30000, Acceptance rate so far: 0.362267
+Iteration 40000, Acceptance rate so far: 0.354625
+Iteration 30000, Acceptance rate so far: 0.354867
+Iteration 30000, Acceptance rate so far: 0.360733
+Iteration 40000, Acceptance rate so far: 0.342875
+Iteration 40000, Acceptance rate so far: 0.343025
+Iteration 40000, Acceptance rate so far: 0.342825
+Iteration 40000, Acceptance rate so far: 0.34415
+Iteration 40000, Acceptance rate so far: 0.3428
+Iteration 50000, Acceptance rate so far: 0.32614
+Iteration 50000, Acceptance rate so far: 0.34098
+Iteration 40000, Acceptance rate so far: 0.3384
+Iteration 40000, Acceptance rate so far: 0.333375
+Iteration 40000, Acceptance rate so far: 0.337625
+Iteration 50000, Acceptance rate so far: 0.32868
+Iteration 50000, Acceptance rate so far: 0.33232
+Iteration 50000, Acceptance rate so far: 0.33086
+Iteration 50000, Acceptance rate so far: 0.33112
+Iteration 60000, Acceptance rate so far: 0.3156
+Iteration 50000, Acceptance rate so far: 0.32624
+Iteration 60000, Acceptance rate so far: 0.328467
+Iteration 50000, Acceptance rate so far: 0.32196
+Iteration 50000, Acceptance rate so far: 0.31928
+Iteration 60000, Acceptance rate so far: 0.319183
+Iteration 50000, Acceptance rate so far: 0.32414
+Iteration 60000, Acceptance rate so far: 0.319833
+Iteration 70000, Acceptance rate so far: 0.3101
+Iteration 60000, Acceptance rate so far: 0.3228
+Iteration 60000, Acceptance rate so far: 0.320817
+Iteration 70000, Acceptance rate so far: 0.3185
+Iteration 60000, Acceptance rate so far: 0.317283
+Iteration 70000, Acceptance rate so far: 0.312243
+Iteration 60000, Acceptance rate so far: 0.316883
+Iteration 60000, Acceptance rate so far: 0.311467
+Iteration 70000, Acceptance rate so far: 0.310457
+Iteration 60000, Acceptance rate so far: 0.313783
+Iteration 80000, Acceptance rate so far: 0.305212
+Iteration 80000, Acceptance rate so far: 0.311563
+Iteration 70000, Acceptance rate so far: 0.315357
+Iteration 70000, Acceptance rate so far: 0.316886
+Iteration 70000, Acceptance rate so far: 0.307357
+Iteration 80000, Acceptance rate so far: 0.307988
+Iteration 70000, Acceptance rate so far: 0.312171
+Iteration 80000, Acceptance rate so far: 0.3081
+Iteration 70000, Acceptance rate so far: 0.3064
+Iteration 70000, Acceptance rate so far: 0.309271
+Iteration 90000, Acceptance rate so far: 0.301833
+Iteration 90000, Acceptance rate so far: 0.307667
+Iteration 80000, Acceptance rate so far: 0.308988
+Iteration 80000, Acceptance rate so far: 0.3098
+Iteration 90000, Acceptance rate so far: 0.306211
+Iteration 80000, Acceptance rate so far: 0.303287
+Iteration 90000, Acceptance rate so far: 0.303844
+Iteration 80000, Acceptance rate so far: 0.307425
+Iteration 80000, Acceptance rate so far: 0.304138
+Iteration 80000, Acceptance rate so far: 0.303475
+Iteration 90000, Acceptance rate so far: 0.305956
+Iteration 90000, Acceptance rate so far: 0.306644
+Iteration 90000, Acceptance rate so far: 0.300778
+Iteration 90000, Acceptance rate so far: 0.302922
+Iteration 90000, Acceptance rate so far: 0.300167
+Iteration 90000, Acceptance rate so far: 0.301133
+Iteration 10000, Acceptance rate so far: 0.2179
+Iteration 10000, Acceptance rate so far: 0.2195
+Iteration 10000, Acceptance rate so far: 0.2139
+Iteration 10000, Acceptance rate so far: 0.2269
+Iteration 20000, Acceptance rate so far: 0.12605
+Iteration 20000, Acceptance rate so far: 0.1259
+Iteration 20000, Acceptance rate so far: 0.12205
+Iteration 20000, Acceptance rate so far: 0.12945
+Iteration 30000, Acceptance rate so far: 0.0887667
+Iteration 30000, Acceptance rate so far: 0.0878
+Iteration 30000, Acceptance rate so far: 0.0870667
+Iteration 30000, Acceptance rate so far: 0.0887667
+Iteration 40000, Acceptance rate so far: 0.068375
+Iteration 40000, Acceptance rate so far: 0.06815
+Iteration 40000, Acceptance rate so far: 0.067125
+Iteration 40000, Acceptance rate so far: 0.0681
+Iteration 50000, Acceptance rate so far: 0.05586
+Iteration 50000, Acceptance rate so far: 0.05654
+Iteration 50000, Acceptance rate so far: 0.0552
+Iteration 50000, Acceptance rate so far: 0.05504
+Iteration 60000, Acceptance rate so far: 0.0474167
+Iteration 10000, Acceptance rate so far: 0.2145
+Iteration 60000, Acceptance rate so far: 0.0478167
+Iteration 10000, Acceptance rate so far: 0.2157
+Iteration 10000, Acceptance rate so far: 0.2159
+Iteration 60000, Acceptance rate so far: 0.0475
+Iteration 60000, Acceptance rate so far: 0.0466333
+Iteration 10000, Acceptance rate so far: 0.2213
+Iteration 10000, Acceptance rate so far: 0.2164
+Iteration 70000, Acceptance rate so far: 0.041
+Iteration 10000, Acceptance rate so far: 0.217
+Iteration 70000, Acceptance rate so far: 0.0413714
+Iteration 20000, Acceptance rate so far: 0.1277
+Iteration 20000, Acceptance rate so far: 0.12615
+Iteration 20000, Acceptance rate so far: 0.12485
+Iteration 70000, Acceptance rate so far: 0.0411429
+Iteration 70000, Acceptance rate so far: 0.0403286
+Iteration 20000, Acceptance rate so far: 0.12265
+Iteration 80000, Acceptance rate so far: 0.0363875
+Iteration 20000, Acceptance rate so far: 0.12065
+Iteration 80000, Acceptance rate so far: 0.0366125
+Iteration 20000, Acceptance rate so far: 0.1265
+Iteration 30000, Acceptance rate so far: 0.0903
+Iteration 30000, Acceptance rate so far: 0.0883667
+Iteration 80000, Acceptance rate so far: 0.0364
+Iteration 30000, Acceptance rate so far: 0.0874333
+Iteration 80000, Acceptance rate so far: 0.0357
+Iteration 30000, Acceptance rate so far: 0.0851
+Iteration 90000, Acceptance rate so far: 0.0325333
+Iteration 30000, Acceptance rate so far: 0.0855667
+Iteration 90000, Acceptance rate so far: 0.0329222
+Iteration 30000, Acceptance rate so far: 0.0883667
+Iteration 40000, Acceptance rate so far: 0.070475
+Iteration 40000, Acceptance rate so far: 0.068675
+Iteration 90000, Acceptance rate so far: 0.0325667
+Iteration 40000, Acceptance rate so far: 0.06825
+Iteration 90000, Acceptance rate so far: 0.0321889
+Iteration 40000, Acceptance rate so far: 0.0658
+Iteration 40000, Acceptance rate so far: 0.0663
+Iteration 40000, Acceptance rate so far: 0.0691
+Iteration 50000, Acceptance rate so far: 0.05796
+Iteration 50000, Acceptance rate so far: 0.05622
+Iteration 50000, Acceptance rate so far: 0.0553
+Iteration 50000, Acceptance rate so far: 0.05366
+Iteration 50000, Acceptance rate so far: 0.05422
+Iteration 50000, Acceptance rate so far: 0.05642
+Iteration 60000, Acceptance rate so far: 0.0488667
+Iteration 60000, Acceptance rate so far: 0.0476
+Iteration 60000, Acceptance rate so far: 0.0469333
+Iteration 60000, Acceptance rate so far: 0.0457333
+Iteration 60000, Acceptance rate so far: 0.0458333
+Iteration 60000, Acceptance rate so far: 0.0477667
+Iteration 70000, Acceptance rate so far: 0.0421714
+Iteration 70000, Acceptance rate so far: 0.0414286
+Iteration 70000, Acceptance rate so far: 0.0407857
+Iteration 70000, Acceptance rate so far: 0.0398
+Iteration 70000, Acceptance rate so far: 0.0397714
+Iteration 70000, Acceptance rate so far: 0.0413429
+Iteration 80000, Acceptance rate so far: 0.0370375
+Iteration 80000, Acceptance rate so far: 0.0367375
+Iteration 80000, Acceptance rate so far: 0.0359875
+Iteration 80000, Acceptance rate so far: 0.035775
+Iteration 80000, Acceptance rate so far: 0.0351625
+Iteration 80000, Acceptance rate so far: 0.0363125
+Iteration 90000, Acceptance rate so far: 0.0332111
+Iteration 90000, Acceptance rate so far: 0.0328778
+Iteration 90000, Acceptance rate so far: 0.0325111
+Iteration 90000, Acceptance rate so far: 0.0325444
+Iteration 90000, Acceptance rate so far: 0.0313778
+Iteration 90000, Acceptance rate so far: 0.0325
+> 
+> save(output_rreg, file = "Output/outputrreg.Rdata")
+> 
+> 
+> proc.time()
+    user   system  elapsed 
+1719.024   42.402  204.759 

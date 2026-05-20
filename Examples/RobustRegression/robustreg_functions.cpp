@@ -78,8 +78,8 @@ arma::vec gradf_dur(const arma::vec& w, const arma::vec& y,
   // element-wise: r_i / (nu + r_i^2)
   arma::vec weights = r / (nu + r % r);
   
-  // gradient: -2 * B^T * weights
-  arma::vec grad = -2.0 * B.t() * weights;
+  // gradient: - B^T * weights
+  arma::vec grad = - (nu + 1) *B.t() * weights;
   
   return grad;
 }
@@ -100,7 +100,7 @@ double log_pi(const arma::vec& w, const arma::vec& y, const arma::mat& B,
   
   // first term:
   // sum log(1 + r_i^2 / (nu * sigma^2))
-  double log_term = sum(log(1.0 + square(r) / nu ));
+  double log_term = 0.5 * (nu + 1) * sum(log(1.0 + square(r) / nu ));
   
   // L1 penalty
   double penalty = alpha * norm(w, 1);
