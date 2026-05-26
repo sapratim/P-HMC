@@ -11,14 +11,14 @@ sourceCpp("pre_robustreg_functions.cpp")
 load("marginal_vars.RData")
 
 ## Sampler / problem settings
-iter        <- 5e3
+iter        <- 5e4
 lambda_prox <- .002
-L_px        <- 20    # leapfrog steps for pHMC / MALA
-L_guo       <- 20    # leapfrog steps for Guo-HMC
+L_px        <- 10    # leapfrog steps for pHMC / MALA
+L_guo       <- 10    # leapfrog steps for Guo-HMC
 
 ## ---- 2. MAP and sanity checks ------------------------------------------------
 
-MAP <- map_estimate(B, y, alpha, nu, sigma, w_truth)
+MAP <- map_estimate(B, y, alpha, nu, sigma, rep(0, length(MAP)))
 
 cbind(summary(MAP), summary(w_truth))
 log_pi(w_truth, y, B, nu, alpha, sigma)
@@ -33,7 +33,7 @@ precond_diag <- post_var_diag
 
 ## ---- 4. Production runs with the estimated preconditioner --------------------
 cat("--- pHMC ---\n")
-eps_p    <- 0.002
+eps_p    <- 0.04
 phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
                                               lambda = lambda_prox, alpha = alpha, sigma = sigma,
                                               iter   = iter, eps_hmc = eps_p, L = L_px, nu = nu,
@@ -41,7 +41,7 @@ phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
 
 
 cat("\n--- Guo-HMC ---\n")
-eps_guo    <- 0.0004
+eps_guo    <- 0.0008
 guohmc_time <- system.time(guohmc_run <- guohmc_cpp(B, y,
                                                     lambda = lambda_prox, alpha = alpha, sigma = sigma,
                                                     iter   = iter, eps_hmc = eps_guo, L = L_guo, nu = nu,
@@ -97,8 +97,13 @@ den_all <- function(i)
   legend("topright", legend = c("RWM", "pHMC", "myMALA", "Guo-HMC"),
          col = c("black", "blue", "darkgreen", "red"), lty = 1, cex = 0.4)
 }
+
+foo <- phmc_run[[1]]
+sample_logp <- apply(foo, 1, function(x) log_pi(x, y, B, nu, alpha, sigma))
+plot.ts(sample_logp)
+cbind(summary(MAP), summary(w_truth), summary(colMeans(foo)))
 ## Per-coordinate trace / density spot-checks
-i <- 1
+i <- 470
 acf_all(i)
 den_all(i)
 i <- i+1
@@ -144,7 +149,7 @@ iter        <- 1e4
 lambda_prox <- .002
 L_px        <- 20    # leapfrog steps for pHMC / MALA
 
-MAP <- map_estimate(B, y, alpha, nu, sigma, w_truth)
+MAP <- map_estimate(B, y, alpha, nu, sigma, rep(0, length(MAP)), n_init = 10)
 # start a little off the MAP to avoid zero-gradient issues 
 w_start <- MAP + rnorm(length(MAP), 0, 0.01)
 
@@ -166,6 +171,10 @@ CI_mat <- matrix(0, nrow = 2, ncol = length(t_index))
 CI_mat[1,] <- upper_quantiles[t_index]
 CI_mat[2,] <- lower_quantiles[t_index]
 
+
+inside <- d2 <= threshold
+X_inside <- X[inside, ]
+joint_intervals <- apply(X_inside, 2, range)
 #pdf(file = "Output/Credible_Intervals.pdf", height = 6, width = 12)
 
 plot(w_truth, type = "l",lwd  = 1)
@@ -177,9 +186,9 @@ segments(x0 = t_index - cap, y0 = CI_mat[2,],   # Lower caps
 segments(x0 = t_index - cap, y0 = CI_mat[1,],   # Upper caps
          x1 = t_index + cap, y1 = CI_mat[1,], lwd = 2, col = "red")
 # Optional: estimated points
-# points(t_index, est,
-#        pch = 16,
-#        col = "blue")
+points(t_index, MAP[t_index],
+       pch = 16,
+       col = "blue")
 
 #dev.off()
 

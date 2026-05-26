@@ -385,15 +385,32 @@ List rwm_cpp(const arma::mat& B, const arma::vec& y, int iter,
 arma::vec map_estimate(const arma::mat& B, const arma::vec& y,
                        double alpha, double nu, double sigma,
                        arma::vec start,
+                       int n_init = 10,
                        int max_iter = 2000,
                        double tol = 1e-8) {
-  int p = start.n_elem;
-  arma::vec w = start;
-  arma::vec y_k = w;
-  arma::vec w_prev = w;
-  double t_km1 = 1.0;
   
-  // Negative log-likelihood (the smooth part we're minimizing)
+  int p = start.n_elem;
+  
+  // Objective function: negative log-posterior
+  auto objective = [&](const arma::vec& v) {
+    arma::vec r = y - B * v;
+    
+    double loglik =
+      0.5 * (nu + 1.0) *
+      arma::sum(
+        arma::log(
+          1.0 +
+            arma::square(r) /
+              (nu * sigma * sigma)
+        )
+      );
+    
+    double penalty = alpha * arma::norm(v, 1);
+    
+    return loglik + penalty;
+  };
+  
+  // Smooth part only
   auto f_smooth = [&](const arma::vec& v) {
     arma::vec r = y - B * v;
     
@@ -407,39 +424,97 @@ arma::vec map_estimate(const arma::mat& B, const arma::vec& y,
       );
   };
   
-  // Start with a small step, grow/shrink with backtracking
-  double step = 1.0 / (((nu + 1.0) / (8.0 * nu * sigma * sigma)) *
-                       std::pow(arma::norm(B, 2), 2.0));
+  arma::vec best_w = start;
+  double best_obj = std::numeric_limits<double>::infinity();
   
-  for (int k = 0; k < max_iter; ++k) {
-    arma::vec g = gradf_dur(y_k, y, B, nu, sigma);   // gradient of NEG log-lik
-    double f_yk = f_smooth(y_k);
+  // Spectral-norm based initial step size
+  double step0 =
+    1.0 /
+      (((nu + 1.0) / (8.0 * nu * sigma * sigma)) *
+        std::pow(arma::norm(B, 2), 2.0));
+  
+  for (int init = 0; init < n_init; ++init) {
     
-    // Backtracking line search: ensure majorization
-    arma::vec w_new;
-    for (int bt = 0; bt < 50; ++bt) {
-      arma::vec z = y_k - step * g;
-      w_new = soft_threshold(z, alpha * step);
-      arma::vec diff = w_new - y_k;
-      double lhs = f_smooth(w_new);
-      double rhs = f_yk + arma::dot(g, diff)
-        + 0.5 / step * arma::dot(diff, diff);
-      if (lhs <= rhs + 1e-12) break;
-      step *= 0.5;
+    // -----------------------------------
+    // Random initialization
+    // -----------------------------------
+    arma::vec w;
+    
+    if (init == 0) {
+      w = start;  // use supplied start first
+    } else {
+      w = start + 0.5 * arma::randn<arma::vec>(p);
     }
     
-    // FISTA momentum
-    double t_k = 0.5 * (1.0 + std::sqrt(1.0 + 4.0 * t_km1 * t_km1));
-    y_k = w_new + ((t_km1 - 1.0) / t_k) * (w_new - w);
+    arma::vec y_k = w;
+    arma::vec w_prev = w;
+    double t_km1 = 1.0;
+    double step = step0;
     
-    if (arma::norm(w_new - w, 2) < tol * std::max(1.0, arma::norm(w, 2))) {
-      w = w_new; break;
+    // -----------------------------------
+    // FISTA iterations
+    // -----------------------------------
+    for (int k = 0; k < max_iter; ++k) {
+      
+      arma::vec g = gradf_dur(y_k, y, B, nu, sigma);
+      double f_yk = f_smooth(y_k);
+      
+      arma::vec w_new;
+      
+      // Backtracking
+      for (int bt = 0; bt < 50; ++bt) {
+        
+        arma::vec z = y_k - step * g;
+        w_new = soft_threshold(z, alpha * step);
+        
+        arma::vec diff = w_new - y_k;
+        
+        double lhs = f_smooth(w_new);
+        
+        double rhs =
+          f_yk +
+          arma::dot(g, diff) +
+          0.5 / step * arma::dot(diff, diff);
+        
+        if (lhs <= rhs + 1e-12)
+          break;
+        
+        step *= 0.5;
+      }
+      
+      // FISTA momentum
+      double t_k =
+        0.5 * (1.0 + std::sqrt(1.0 + 4.0 * t_km1 * t_km1));
+      
+      y_k =
+        w_new +
+        ((t_km1 - 1.0) / t_k) * (w_new - w);
+      
+      // Convergence check
+      if (arma::norm(w_new - w, 2) <
+        tol * std::max(1.0, arma::norm(w, 2))) {
+        w = w_new;
+        break;
+      }
+      
+      w = w_new;
+      t_km1 = t_k;
+      
+      // Mild step growth
+      if (k % 20 == 0)
+        step *= 1.1;
     }
-    w = w_new;
-    t_km1 = t_k;
     
-    // Optional: grow step occasionally to avoid getting too small
-    if (k % 20 == 0) step *= 1.1;
+    // -----------------------------------
+    // Keep best solution
+    // -----------------------------------
+    double obj = objective(w);
+    
+    if (obj < best_obj) {
+      best_obj = obj;
+      best_w = w;
+    }
   }
-  return w;
+  
+  return best_w;
 }
