@@ -11,7 +11,7 @@ sourceCpp("pre_robustreg_functions.cpp")
 load("marginal_vars.RData")
 
 ## Sampler / problem settings
-iter        <- 5e4
+iter        <- 5e3
 lambda_prox <- .002
 L_px        <- 20    # leapfrog steps for pHMC / MALA
 L_guo       <- 20    # leapfrog steps for Guo-HMC
@@ -33,11 +33,12 @@ precond_diag <- post_var_diag
 
 ## ---- 4. Production runs with the estimated preconditioner --------------------
 cat("--- pHMC ---\n")
-eps_p    <- 0.04
+eps_p    <- 0.002
 phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
                                               lambda = lambda_prox, alpha = alpha, sigma = sigma,
                                               iter   = iter, eps_hmc = eps_p, L = L_px, nu = nu,
                                               start  = w_start, precond = precond_diag, blather = TRUE))[3]
+
 
 cat("\n--- Guo-HMC ---\n")
 eps_guo    <- 0.0004
@@ -125,5 +126,62 @@ print(round(rbind(pHMC = summarize_ess(ess_phmc / phmc_time),
                   GuoHMC = summarize_ess(ess_guohmc / guohmc_time),
                   myMALA = summarize_ess(ess_mymala / mymala_time),
                   RWM = summarize_ess(ess_rwm / rwm_time)), 4))
+
+
+
+######################  Check alpha for credible intervals  #####################
+
+set.seed(209)
+library(Rcpp)
+library(mcmcse)
+# loads model settings as well
+source("robustreg_data.R")
+sourceCpp("pre_robustreg_functions.cpp")
+load("marginal_vars.RData")
+
+## Sampler / problem settings
+iter        <- 1e4
+lambda_prox <- .002
+L_px        <- 20    # leapfrog steps for pHMC / MALA
+
+MAP <- map_estimate(B, y, alpha, nu, sigma, w_truth)
+# start a little off the MAP to avoid zero-gradient issues 
+w_start <- MAP + rnorm(length(MAP), 0, 0.01)
+
+# post_var_diag from loading marginal variances
+precond_diag <- post_var_diag
+
+alpha <- 25
+
+eps_p    <- 0.0012
+phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
+                                              lambda = lambda_prox, alpha = alpha, sigma = sigma,
+                                              iter   = iter, eps_hmc = eps_p, L = L_px, nu = nu,
+                                              start  = w_start, precond = precond_diag, blather = TRUE))[3]
+
+upper_quantiles <- apply(phmc_run[[1]], 2, function(x) quantile(x, 0.975))
+lower_quantiles <- apply(phmc_run[[1]], 2, function(x) quantile(x, 0.025))
+
+CI_mat <- matrix(0, nrow = 2, ncol = length(t_index))
+CI_mat[1,] <- upper_quantiles[t_index]
+CI_mat[2,] <- lower_quantiles[t_index]
+
+#pdf(file = "Output/Credible_Intervals.pdf", height = 6, width = 12)
+
+plot(w_truth, type = "l",lwd  = 1)
+# segments(x0 = t_index, y0 = CI_mat[2,],        # Vertical credible interval bars
+#          x1 = t_index, y1 = CI_mat[1,], lwd = 1, col = "red")
+cap <- 1.5      # Width of horizontal caps
+segments(x0 = t_index - cap, y0 = CI_mat[2,],   # Lower caps
+         x1 = t_index + cap, y1 = CI_mat[2,], lwd = 2,col = "red")
+segments(x0 = t_index - cap, y0 = CI_mat[1,],   # Upper caps
+         x1 = t_index + cap, y1 = CI_mat[1,], lwd = 2, col = "red")
+# Optional: estimated points
+# points(t_index, est,
+#        pch = 16,
+#        col = "blue")
+
+#dev.off()
+
 
 

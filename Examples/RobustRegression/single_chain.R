@@ -32,68 +32,6 @@ phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
 
 save(phmc_run, file = "Output/single_phmc_chain.Rdata")
 
-# CI_mat <- matrix(0, nrow = 2, ncol = length(t_index))
-# CI_mat[1,] <- upper_quantiles[t_index]
-# CI_mat[2,] <- lower_quantiles[t_index] 
-
-# 
-# # Lower and upper credible limits
-# lower <- CI_mat[2, ]
-# upper <- CI_mat[1, ]
-# 
-# # Point estimates (optional)
-# est <- (lower + upper)/2
-# 
-# pdf(file = "Output/Credible_Intervals.pdf", height = 6, width = 12)
-# # Plot signal
-# plot(w_truth,
-#      type = "l",
-#      lwd  = 1)
-# 
-# # # Vertical credible interval bars
-# # segments(
-# #   x0  = t_index,
-# #   y0  = lower,
-# #   x1  = t_index,
-# #   y1  = upper,
-# #   lwd = 1,
-# #   col = "red"
-# # )
-# 
-# # Width of horizontal caps
-# cap <- 1.5
-# 
-# # Lower caps
-# segments(
-#   x0 = t_index - cap,
-#   y0 = lower,
-#   x1 = t_index + cap,
-#   y1 = lower,
-#   lwd = 2,
-#   col = "red"
-# )
-# 
-# # Upper caps
-# segments(
-#   x0 = t_index - cap,
-#   y0 = upper,
-#   x1 = t_index + cap,
-#   y1 = upper,
-#   lwd = 2,
-#   col = "red"
-# )
-# 
-# # Optional: estimated points
-# points(t_index, est,
-#        pch = 16,
-#        col = "blue")
-# 
-# dev.off()
-# 
-# plot(w_truth, type = 'l')
-# lines(colMeans(phmc_run[[1]]), type = 'l', col = "red")
-# lines(colMeans(rwm_run[[1]]), type = 'l', col = "red")
-
 # dens_values <- apply(phmc_run[[1]], 1, function(x) log_pi(x, y, Phi_mat, nu, alpha, sigma))
 # MAP_sample <- phmc_run[[1]][which.max(dens_values),]
 
