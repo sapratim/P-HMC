@@ -11,10 +11,11 @@ source("nn_data.R")
 sourceCpp("nn_functions.cpp")
 load("warmup_chain.Rdata")
 
-iter <- 1e3
-eps_ns <-  .00008
-lambda_grid <- seq(1e-5, 2, length = 100)
-acf_vec <- numeric(length = length(lambda_grid))
+iter <- 5e3
+eps_ns <-  .0045
+lambda_grid <- seq(1e-7, 0.0001, length = 100)
+acf_vec_min <- numeric(length = length(lambda_grid))
+acf_vec_mean <- numeric(length = length(lambda_grid))
 blat <- TRUE
 
 for (i in 1:length(lambda_grid)) {
@@ -26,8 +27,11 @@ for (i in 1:length(lambda_grid)) {
   samp_mat <- nshmc_run[[1]]
   acf_lag1 <- sapply(seq_len(ncol(samp_mat)), function(j) {
     cor(samp_mat[-1, j], samp_mat[-nrow(samp_mat), j])})
-  acf_vec[i] <- mean(acf_lag1)
+  acf_vec_min[i] <- min(acf_lag1)
+  acf_vec_mean[i] <- mean(acf_lag1)
 }
-#opt_lambda <- lambda_grid[which.min(acf_vec)]
+acf_output <- list(acf_vec_min, acf_vec_mean)
 
-save(acf_vec, file = "Output/opt_lambda.Rdata")
+#####opt_lambda <- lambda_grid[which.min(acf_vec)]
+
+save(acf_output, file = "Output/opt_lambda.Rdata")
