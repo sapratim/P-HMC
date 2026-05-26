@@ -204,10 +204,17 @@ arma::vec grad_logpiLam_guo(const arma::vec& beta, double lambda, double alpha) 
   return - (beta - beta_prox);
 }
 
+// sample leapfrog steps randomly
+// [[Rcpp::export]]
+int sample_L(int L_val) {
+  int val = (R::runif(0.0, 1.0) <= 0.05) ? 1 : L_val;
+  return val;
+}
+
 // Chaari's non-smooth method
 // [[Rcpp::export]]
 List nshmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,
-               int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
+               int iter, double eps_hmc, int L_val, arma::vec start, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -219,6 +226,7 @@ List nshmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alp
     arma::vec p_prop = mom_mat.row(i).t();
     arma::vec p_current = p_prop - 0.5 * eps_hmc * grad_logpiLam(X, y, samp, lambda, alpha);
     arma::vec q_current = samp;
+    int L = sample_L(L_val);
     
     for (int j = 0; j < L; ++j) {
       samp = samp + eps_hmc * p_current;
@@ -261,12 +269,10 @@ List nshmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alp
 
 
 
-
-
-// Proximal HMC (paritial proximal)
+// Proximal HMC (partial proximal)
 // [[Rcpp::export]]
 List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,
-              int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
+              int iter, double eps_hmc, int L_val, arma::vec start, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -278,6 +284,7 @@ List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alph
     arma::vec p_prop = mom_mat.row(i).t();
     arma::vec p_current = p_prop + 0.5 * eps_hmc * grad_logpiLamg(X, y, samp, lambda, alpha);
     arma::vec q_current = samp;
+   int L = sample_L(L_val);
     
     for (int j = 0; j < L; ++j) {
       samp = samp + eps_hmc * p_current;
@@ -321,7 +328,7 @@ List phmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alph
 // Guo HMC 
 // [[Rcpp::export]]
 List guohmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double alpha,int iter,
-                double eps_hmc, int L, arma::vec start, bool blather = true) {
+                double eps_hmc, int L_val, arma::vec start, bool blather = true) {
   int p = start.n_elem;
   arma::mat samples(iter, p);
   arma::vec samp = start;
@@ -333,6 +340,7 @@ List guohmc_cpp(const arma::mat& X, const arma::vec& y, double lambda, double al
     arma::vec p_prop = mom_mat.row(i).t();
     arma::vec p_current = p_prop + 0.5 * eps_hmc * grad_logpiLam_guo(samp, lambda, alpha);
     arma::vec q_current = samp;
+    int L = sample_L(L_val);
     
     for (int j = 0; j < L; ++j) {
       samp = samp + eps_hmc * p_current;

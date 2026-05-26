@@ -80,7 +80,7 @@ acf_all <- function(i)
   lines(mymala, col = "darkgreen")
   lines(guohmc, col = "red")
   legend("bottomleft", legend = c("RWM", "pHMC", "myMALA", "Guo-HMC"),
-         col = c("black", "blue", "darkgreen", "red"), lty = 1)
+         col = c("black", "blue", "darkgreen", "red"), lty = 1, cex = 0.4)
 }
 
 den_all <- function(i)
@@ -94,13 +94,13 @@ den_all <- function(i)
   lines(density(mymala_run[[1]][,i]), col = "darkgreen")
   lines(density(guohmc_run[[1]][,i]), col = "red")
   legend("topright", legend = c("RWM", "pHMC", "myMALA", "Guo-HMC"),
-         col = c("black", "blue", "darkgreen", "red"), lty = 1)
+         col = c("black", "blue", "darkgreen", "red"), lty = 1, cex = 0.4)
 }
 ## Per-coordinate trace / density spot-checks
 i <- 1
 acf_all(i)
 den_all(i)
-
+i <- i+1
 
 # calculating ess
 ess_phmc <- ess(phmc_run$samples)
@@ -125,7 +125,5 @@ print(round(rbind(pHMC = summarize_ess(ess_phmc / phmc_time),
                   GuoHMC = summarize_ess(ess_guohmc / guohmc_time),
                   myMALA = summarize_ess(ess_mymala / mymala_time),
                   RWM = summarize_ess(ess_rwm / rwm_time)), 4))
-
-
 
 

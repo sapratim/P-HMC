@@ -72,16 +72,13 @@ metric_fun <- function(name)# enter one of ("RWM","pHMC","myMALA","nsHMC","pMALA
   
   # mean deviations for different reps
   mean_devs_mat <- mat_means - truth_estimate
-  
+  norm_vec <- colSums(mean_devs_mat^2)
   # errors
-  mean_error <- mean(sqrt(colSums(mean_devs_mat^2)))  # mean
-  # max_re <-  max(sqrt(colSums(mean_devs_mat^2)) / sqrt(sum(truth_estimate^2))) # maximum
-  # pooled_re <- sqrt(sum(rowMeans(mat_means) - truth_estimate)^2)/sqrt(sum(truth_estimate^2)) # pooled
-  # 
-  # average mean square error
+  mean_error <- mean(sqrt(norm_vec))  # mean
   avg_mse_mat <- mean(colSums(mean_devs_mat^2))
+  stan_error <- sd(norm_vec)/length(norm_vec)
   
-  output <- list(mean_error, avg_mse_mat)
+  output <- list(mean_error, avg_mse_mat, stan_error)
   return(output)
 }
 
@@ -92,7 +89,7 @@ nsHMC_output <- metric_fun("nsHMC")
 pMALA_output <- metric_fun("pMALA")
 guoHMC_output <- metric_fun("guoHMC")
 
-output_mat <- matrix(0, nrow = length(names), ncol = 2)
+output_mat <- matrix(0, nrow = length(names), ncol = 3)
 
 output_mat[1,] <- sapply(rwm_output, rbind)
 output_mat[2,] <- sapply(pHMC_output, rbind)
@@ -102,7 +99,6 @@ output_mat[5,] <- sapply(pMALA_output, rbind)
 output_mat[6,] <- sapply(guoHMC_output, rbind)
 
 rownames(output_mat) <- c("RWM", "pHMC", "myMALA", "nsHMC", "pMALA", "guoHMC")
-colnames(output_mat) <- c("Mean Error", "Avg MSE")
+colnames(output_mat) <- c("Mean Error", "Avg MSE", "Standard error")
 
-output_mat
-
+round(output_mat, 5)

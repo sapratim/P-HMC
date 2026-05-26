@@ -2,47 +2,64 @@
 ################## Robust regression (L2E criterion) #######################
 ############################################################################
 
-set.seed(123)
-library(mcmcse)
-library(Matrix)
-library(ks)
-library(stats)
+set.seed(209)
 library(Rcpp)
+library(mcmcse)
+library(foreach)
 library(doParallel)
-source("robustreg_data.R")
-sourceCpp("robustreg_functions.cpp")
+source("robustreg_data.R")          # loads model settings as well
+sourceCpp("pre_robustreg_functions.cpp")
+load("marginal_vars.RData")
 
-w_start <- w_truth + rnorm(1, 0, 0.1)
-iter <- 1e5
-eps_p <- 0.00012
-eps_guo <- 0.0001
-alpha <- 100
+###############   Obtain MAP estimate
+MAP <- map_estimate(B, y, alpha, nu, sigma, w_truth)
+
+# start a little off the MAP to avoid zero-gradient issues 
+w_start <- MAP + rnorm(length(MAP), 0, 0.01)
+
+# post_var_diag from loading marginal variances
+precond_diag <- post_var_diag
+
+iter <- 1e4
+lambda_prox <- .002
+L_px        <- 20    # leapfrog steps for pHMC / MALA
+L_guo       <- 20    # leapfrog steps for Guo-HMC
 
 parallel::detectCores()
 num_cores <- 10
 doParallel::registerDoParallel(cores = num_cores)
-reps <- 10
+reps <- 100
 
 output_rreg <- foreach(b = 1:reps) %dopar% 
   {
     ## Run samplers
     print(b)
-    L_px <- ifelse(runif(1) <= 0.05, 1, 10)
-    L_guo <- ifelse(runif(1) <= 0.05, 1, 10)
+    eps_p    <- 0.04
+    phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
+                                                  lambda = lambda_prox, alpha = alpha, sigma = sigma,
+                                                  iter   = iter, eps_hmc = eps_p, L = L_px, nu = nu,
+                                                  start  = w_start, precond = precond_diag, blather = TRUE))[3]
     
-    phmc_time <- system.time(phmc_run <- phmc_cpp(Phi_mat, y, lambda = .0089, iter = iter, eps_hmc = eps_p, 
-                          L = L_px, nu = nu, start = w_start, alpha = alpha, blather = T))
+    cat("\n--- Guo-HMC ---\n")
+    eps_guo    <- 0.0004
+    guohmc_time <- system.time(guohmc_run <- guohmc_cpp(B, y,
+                                                        lambda = lambda_prox, alpha = alpha, sigma = sigma,
+                                                        iter   = iter, eps_hmc = eps_guo, L = L_guo, nu = nu,
+                                                        start  = w_start, precond = precond_diag, blather = TRUE))[3]
     
-    guohmc_time <- system.time(guohmc_run <- guohmc_cpp(Phi_mat, y, lambda = .0089, iter = iter, eps_hmc = eps_guo, 
-             L = L_guo, nu = nu, start = w_start, alpha = alpha, blather = T))
+    cat("\n--- MALA (pHMC with L = 1, lambda = eps/2) ---\n")
+    eps        <- 0.05
+    mymala_time <- system.time(mymala_run <- phmc_cpp(B, y,
+                                                      lambda = eps / 2, alpha = alpha, sigma = sigma,
+                                                      iter   = iter, eps_hmc = eps, L = 1, nu = nu,
+                                                      start  = w_start, precond = precond_diag, blather = TRUE))[3]
     
-    eps <-  0.0012
-    mymala_time <- system.time(mymala_run <- phmc_cpp(Phi_mat, y, lambda = eps/2, iter = iter, eps_hmc = eps, 
-              L = 1, nu = nu, start = w_start, alpha = alpha, blather = T))
-    
-    rwm_time <- system.time(rwm_run <- rwm_cpp(Phi_mat, y, iter = iter, h = .004 ,
-                start = w_start, alpha = alpha, nu = nu, blather = T))
-    
+    cat("\n--- RWM ---\n")
+    rwm_time <- system.time(rwm_run <- rwm_cpp(B, y,
+                                               iter  = iter, h = 0.02,
+                                               start = w_start, alpha = alpha, sigma = sigma, nu = nu,
+                                               precond = precond_diag, blather = TRUE))[3]
+  
     # Means
     all_means <- cbind(colMeans(rwm_run[[1]]), colMeans(phmc_run[[1]]), 
                        colMeans(mymala_run[[1]]),colMeans(guohmc_run[[1]]))
@@ -53,8 +70,8 @@ output_rreg <- foreach(b = 1:reps) %dopar%
                      ess(mymala_run[[1]]), ess(guohmc_run[[1]]))
     colnames(all_ess) <- c("RWM", "pHMC", "myMALA", "guoHMC")
     
-    all_time <- c(rwm_time[3], phmc_time[3], 
-                  mymala_time[3], guohmc_time[3])
+    all_time <- c(rwm_time, phmc_time, 
+                  mymala_time, guohmc_time)
     names(all_time) <- c("RWM", "pHMC", "myMALA", "guoHMC")
     
     list(all_means, all_ess, all_time)
