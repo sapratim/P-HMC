@@ -1,7 +1,7 @@
 
-R version 4.2.1 (2022-06-23) -- "Funny-Looking Kid"
-Copyright (C) 2022 The R Foundation for Statistical Computing
-Platform: x86_64-apple-darwin17.0 (64-bit)
+R version 4.4.3 (2025-02-28) -- "Trophy Case"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -17,6 +17,8 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 'help.start()' for an HTML browser interface to help.
 Type 'q()' to quit R.
 
+[Previously saved workspace restored]
+
 > ######################################################################
 > ################# Nuclear Norm regression   ##########################
 > ######################################################################
@@ -31,17 +33,17 @@ Type 'q()' to quit R.
 > sourceCpp("nn_functions.cpp")
 > load("warmup_chain.Rdata")
 > 
-> iter <- 1e3
+> iter <- 1e5
 > lamb_coeff <- 1e-4
 > eps_px <- 0.0075
 > L <- 10
 > 
 > 
 > parallel::detectCores()
-[1] 8
-> num_cores <- 4
+[1] 64
+> num_cores <- 10
 > doParallel::registerDoParallel(cores = num_cores)
-> reps <- 4
+> reps <- 100
 > 
 > blat <- TRUE
 > output_nn <- foreach(b = 1:reps) %dopar% 
@@ -49,8 +51,9 @@ Type 'q()' to quit R.
 +     ## Run samplers
 +     print(b)
 +     
++     if(runif(1) < 0.05) {L <- 1}
 +     phmc_time <- system.time(phmc_run <- phmc_cpp(y=y, alpha = alpha_hat,lambda = lamb_coeff, sigma2 = sigma2_hat, 
-+                                                   iter = iter, eps_hmc = eps_px, L=L, start = warmup_end_iter, blather = blat) )
++                                               iter = iter, eps_hmc = eps_px, L=L, start = warmup_end_iter, blather = blat))
 +     
 +     post_mean <- colMeans(phmc_run[[1]])
 +     list(post_mean)
@@ -59,49 +62,1105 @@ Type 'q()' to quit R.
 [1] 2
 [1] 3
 [1] 4
-Iter: Iter: 100100  Accept Rate:   Accept Rate: 0.71
-Iter: 0.63
-100  Accept Rate: 0.72
-Iter: 100  Accept Rate: 0.7
-Iter: 200  Accept Rate: 0.635
-Iter: 200  Accept Rate: 0.69
-Iter: 200  Accept Rate: 0.675
-Iter: 200  Accept Rate: 0.675
-Iter: 300  Accept Rate: 0.69
-Iter: 300  Accept Rate: 0.653333
-Iter: 300  Accept Rate: 0.696667
-Iter: 300  Accept Rate: 0.67
-Iter: 400  Accept Rate: 0.7025
-Iter: 400  Accept Rate: 0.6975
-Iter: 400  Accept Rate: 0.6675
-Iter: 400  Accept Rate: 0.6975
-Iter: 500  Accept Rate: 0.686
-Iter: 500  Accept Rate: 0.662
-Iter: 500  Accept Rate: 0.67
-Iter: 500  Accept Rate: 0.67
-Iter: 600  Accept Rate: 0.665
-Iter: 600  Accept Rate: 0.656667
-Iter: 600  Accept Rate: 0.67
-Iter: 600  Accept Rate: 0.671667
-Iter: Iter: 700700  Accept Rate:   Accept Rate: 0.66
-0.671429
-Iter: 700  Accept Rate: 0.66
-Iter: 700  Accept Rate: 0.662857
-Iter: 800  Accept Rate: 0.6675
-Iter: 800  Accept Rate: 0.6525
-Iter: 800  Accept Rate: 0.6575
-Iter: 800  Accept Rate: 0.66375
-Iter: 900  Accept Rate: 0.667778
-Iter: 900  Accept Rate: 0.655556
-Iter: 900  Accept Rate: 0.657778
-Iter: 900  Accept Rate: 0.661111
-Final Acceptance Rate: 0.661
-Final Acceptance Rate: 0.658
-Final Acceptance Rate: 0.654
-Final Acceptance Rate: 0.657
+[1] 5
+[1] 6
+[1] 7
+[1] 8
+[1] 9
+[1] 10
+Iter: 10000  Accept Rate: 0.7256
+Iter: 20000  Accept Rate: 0.7279
+Iter: 30000  Accept Rate: 0.728633
+Iter: 40000  Accept Rate: 0.7274
+Iter: 10000  Accept Rate: 0.6555
+Iter: 10000  Accept Rate: 0.6577
+Iter: 10000  Accept Rate: 0.6647
+Iter: 10000  Accept Rate: 0.6661
+Iter: 10000  Accept Rate: 0.6595
+Iter: 10000  Accept Rate: 0.6575
+Iter: 10000  Accept Rate: 0.6581
+Iter: 10000  Accept Rate: 0.6639
+Iter: 10000  Accept Rate: 0.6631
+Iter: 50000  Accept Rate: 0.72752
+Iter: 60000  Accept Rate: 0.728517
+Iter: 70000  Accept Rate: 0.729914
+Iter: 80000  Accept Rate: 0.73035
+Iter: 20000  Accept Rate: 0.6576
+Iter: 20000  Accept Rate: 0.656
+Iter: 20000  Accept Rate: 0.6649
+Iter: 20000  Accept Rate: 0.65835
+Iter: 20000  Accept Rate: 0.6567
+Iter: 90000  Accept Rate: 0.730533
+Iter: 20000  Accept Rate: 0.6549
+Iter: 20000  Accept Rate: 0.65555
+Iter: 20000  Accept Rate: 0.6603
+Iter: 20000  Accept Rate: 0.6613
+Final Acceptance Rate: 0.73182
+[1] 15
+Iter: 30000  Accept Rate: 0.656333
+Iter: 30000  Accept Rate: 0.655533
+Iter: 30000  Accept Rate: 0.666733
+Iter: 30000  Accept Rate: 0.6595
+Iter: 30000  Accept Rate: 0.6603
+Iter: 30000  Accept Rate: 0.660967
+Iter: 30000  Accept Rate: 0.655233
+Iter: 30000  Accept Rate: 0.6601
+Iter: 30000  Accept Rate: 0.6628
+Iter: 10000  Accept Rate: 0.6571
+Iter: 40000  Accept Rate: 0.658125
+Iter: 40000  Accept Rate: 0.658075
+Iter: 40000  Accept Rate: 0.666975
+Iter: 40000  Accept Rate: 0.658425
+Iter: 40000  Accept Rate: 0.662375
+Iter: 40000  Accept Rate: 0.659575
+Iter: 40000  Accept Rate: 0.6552
+Iter: 40000  Accept Rate: 0.65875
+Iter: 40000  Accept Rate: 0.660525
+Iter: 20000  Accept Rate: 0.66075
+Iter: 50000  Accept Rate: 0.6591
+Iter: 50000  Accept Rate: 0.65824
+Iter: 50000  Accept Rate: 0.66554
+Iter: 50000  Accept Rate: 0.66028
+Iter: 50000  Accept Rate: 0.6617
+Iter: 50000  Accept Rate: 0.65956
+Iter: 50000  Accept Rate: 0.65778
+Iter: 50000  Accept Rate: 0.65856
+Iter: 50000  Accept Rate: 0.65922
+Iter: 30000  Accept Rate: 0.6585
+Iter: 60000  Accept Rate: 0.66045
+Iter: 60000  Accept Rate: 0.659017
+Iter: 60000  Accept Rate: 0.6635
+Iter: 60000  Accept Rate: 0.659667
+Iter: 60000  Accept Rate: 0.6615
+Iter: 60000  Accept Rate: 0.659933
+Iter: 60000  Accept Rate: 0.658833
+Iter: 60000  Accept Rate: 0.658217
+Iter: 60000  Accept Rate: 0.656167
+Iter: 40000  Accept Rate: 0.658875
+Iter: 70000  Accept Rate: 0.660171
+Iter: 70000  Accept Rate: 0.659857
+Iter: 70000  Accept Rate: 0.662714
+Iter: 70000  Accept Rate: 0.658971
+Iter: 70000  Accept Rate: 0.661914
+Iter: 70000  Accept Rate: 0.659557
+Iter: 70000  Accept Rate: 0.660329
+Iter: 70000  Accept Rate: 0.658471
+Iter: 70000  Accept Rate: 0.656614
+Iter: 50000  Accept Rate: 0.6585
+Iter: 80000  Accept Rate: 0.65965
+Iter: 80000  Accept Rate: 0.660512
+Iter: 80000  Accept Rate: 0.661713
+Iter: 80000  Accept Rate: 0.65875
+Iter: 80000  Accept Rate: 0.660713
+Iter: 80000  Accept Rate: 0.659787
+Iter: 80000  Accept Rate: 0.6616
+Iter: 80000  Accept Rate: 0.659175
+Iter: 80000  Accept Rate: 0.657112
+Iter: 60000  Accept Rate: 0.659333
+Iter: 90000  Accept Rate: 0.659333
+Iter: 90000  Accept Rate: 0.660467
+Iter: 90000  Accept Rate: 0.660989
+Iter: 90000  Accept Rate: 0.658511
+Iter: 90000  Accept Rate: 0.659111
+Iter: 90000  Accept Rate: 0.660044
+Iter: 90000  Accept Rate: 0.662033
+Iter: 90000  Accept Rate: 0.659922
+Iter: 90000  Accept Rate: 0.655844
+Iter: 70000  Accept Rate: 0.658929
+Final Acceptance Rate: 0.65979
+Final Acceptance Rate: 0.66
+Final Acceptance Rate: 0.66093
+[1] 11
+Final Acceptance Rate: 0.65913
+[1] 12
+Final Acceptance Rate: 0.65771
+[1] 13
+[1] 14
+[1] 16
+Final Acceptance Rate: 0.66141
+[1] 17
+Final Acceptance Rate: 0.663
+Final Acceptance Rate: 0.6608
+Final Acceptance Rate: 0.65608
+[1] 20
+[1] 18
+[1] 19
+Iter: 10000  Accept Rate: 0.7288
+Iter: 80000  Accept Rate: 0.65855
+Iter: 20000  Accept Rate: 0.73375
+Iter: 30000  Accept Rate: 0.7357
+Iter: 40000  Accept Rate: 0.73345
+Iter: 10000  Accept Rate: 0.6535
+Iter: 10000  Accept Rate: 0.6591
+Iter: 10000  Accept Rate: 0.6633
+Iter: 10000  Accept Rate: 0.6652
+Iter: 10000  Accept Rate: 0.6647
+Iter: 10000  Accept Rate: 0.6585
+Iter: 10000  Accept Rate: 0.6623
+Iter: 10000  Accept Rate: 0.6576
+Iter: 50000  Accept Rate: 0.73356
+Iter: 90000  Accept Rate: 0.658622
+Iter: 60000  Accept Rate: 0.732433
+Iter: 70000  Accept Rate: 0.731729
+Iter: 80000  Accept Rate: 0.731062
+Iter: 20000  Accept Rate: 0.66005
+Iter: 90000  Accept Rate: 0.730589
+Iter: 20000  Accept Rate: 0.6574
+Iter: 20000  Accept Rate: 0.6655
+Iter: 20000  Accept Rate: 0.66415
+Iter: 20000  Accept Rate: 0.6643
+Iter: 20000  Accept Rate: 0.6563
+Iter: 20000  Accept Rate: 0.6603
+Iter: 20000  Accept Rate: 0.6582
+Final Acceptance Rate: 0.73052
+[1] 23
+Final Acceptance Rate: 0.65817
+[1] 25
+Iter: 30000  Accept Rate: 0.659033
+Iter: 30000  Accept Rate: 0.6597
+Iter: 30000  Accept Rate: 0.665333
+Iter: 30000  Accept Rate: 0.6645
+Iter: 30000  Accept Rate: 0.664733
+Iter: 30000  Accept Rate: 0.660233
+Iter: 30000  Accept Rate: 0.661
+Iter: 30000  Accept Rate: 0.6611
+Iter: 10000  Accept Rate: 0.6509
+Iter: 10000  Accept Rate: 0.6546
+Iter: 40000  Accept Rate: 0.658475
+Iter: 40000  Accept Rate: 0.661075
+Iter: 40000  Accept Rate: 0.66435
+Iter: 40000  Accept Rate: 0.66145
+Iter: 40000  Accept Rate: 0.660125
+Iter: 40000  Accept Rate: 0.65985
+Iter: 40000  Accept Rate: 0.660275
+Iter: 40000  Accept Rate: 0.660875
+Iter: 20000  Accept Rate: 0.6547
+Iter: 20000  Accept Rate: 0.6611
+Iter: 50000  Accept Rate: 0.65912
+Iter: 50000  Accept Rate: 0.66492
+Iter: 50000  Accept Rate: 0.66052
+Iter: 50000  Accept Rate: 0.66316
+Iter: 50000  Accept Rate: 0.6607
+Iter: 50000  Accept Rate: 0.66118
+Iter: 50000  Accept Rate: 0.66088
+Iter: 50000  Accept Rate: 0.65942
+Iter: 30000  Accept Rate: 0.658667
+Iter: 30000  Accept Rate: 0.661167
+Iter: 60000  Accept Rate: 0.65995
+Iter: 60000  Accept Rate: 0.664367
+Iter: 60000  Accept Rate: 0.66045
+Iter: 60000  Accept Rate: 0.66
+Iter: 60000  Accept Rate: 0.660817
+Iter: 60000  Accept Rate: 0.662767
+Iter: 60000  Accept Rate: 0.660667
+Iter: 60000  Accept Rate: 0.659933
+Iter: 40000  Accept Rate: 0.661725
+Iter: 40000  Accept Rate: 0.6623
+Iter: 70000  Accept Rate: 0.660557
+Iter: 70000  Accept Rate: 0.664557
+Iter: 70000  Accept Rate: 0.6591
+Iter: 70000  Accept Rate: 0.661171
+Iter: 70000  Accept Rate: 0.661714
+Iter: 70000  Accept Rate: 0.662014
+Iter: 70000  Accept Rate: 0.663057
+Iter: 70000  Accept Rate: 0.661357
+Iter: 50000  Accept Rate: 0.66034
+Iter: 50000  Accept Rate: 0.66054
+Iter: 80000  Accept Rate: 0.66015
+Iter: 80000  Accept Rate: 0.663362
+Iter: 80000  Accept Rate: 0.659663
+Iter: 80000  Accept Rate: 0.661162
+Iter: 80000  Accept Rate: 0.6612
+Iter: 80000  Accept Rate: 0.661837
+Iter: 80000  Accept Rate: 0.66255
+Iter: 80000  Accept Rate: 0.660238
+Iter: 60000  Accept Rate: 0.659667
+Iter: 60000  Accept Rate: 0.6621
+Iter: 90000  Accept Rate: 0.661033
+Iter: 90000  Accept Rate: 0.663
+Iter: 90000  Accept Rate: 0.658422
+Iter: 90000  Accept Rate: 0.661267
+Iter: 90000  Accept Rate: 0.660089
+Iter: 90000  Accept Rate: 0.661189
+Iter: 90000  Accept Rate: 0.662333
+Iter: 90000  Accept Rate: 0.660811
+Iter: 70000  Accept Rate: 0.661714
+Iter: 70000  Accept Rate: 0.6622
+Final Acceptance Rate: 0.66131
+[1] 21
+Final Acceptance Rate: 0.66243
+[1] 26
+Final Acceptance Rate: 0.65866
+Final Acceptance Rate: 0.66115
+[1] 22
+Final Acceptance Rate: 0.6603
+[1] 24
+[1] 27
+Final Acceptance Rate: 0.6604
+Final Acceptance Rate: 0.66109
+Final Acceptance Rate: 0.66092
+[1] 29
+[1] 30
+[1] 28
+Iter: 80000  Accept Rate: 0.660288
+Iter: 80000  Accept Rate: 0.662687
+Iter: 10000  Accept Rate: 0.6538
+Iter: 10000  Accept Rate: 0.6704
+Iter: 10000  Accept Rate: 0.6622
+Iter: 10000  Accept Rate: 0.6548
+Iter: 10000  Accept Rate: 0.6675
+Iter: 10000  Accept Rate: 0.6565
+Iter: 10000  Accept Rate: 0.6641
+Iter: 10000  Accept Rate: 0.6559
+Iter: 90000  Accept Rate: 0.660078
+Iter: 90000  Accept Rate: 0.6623
+Iter: 20000  Accept Rate: 0.65775
+Iter: 20000  Accept Rate: 0.6661
+Iter: 20000  Accept Rate: 0.6574
+Iter: 20000  Accept Rate: 0.65695
+Iter: 20000  Accept Rate: 0.6649
+Iter: 20000  Accept Rate: 0.65745
+Iter: 20000  Accept Rate: 0.66015
+Iter: 20000  Accept Rate: 0.65875
+Final Acceptance Rate: 0.66032
+[1] 33
+Final Acceptance Rate: 0.6625
+[1] 35
+Iter: 30000  Accept Rate: 0.6577
+Iter: 30000  Accept Rate: 0.663567
+Iter: 30000  Accept Rate: 0.6571
+Iter: 30000  Accept Rate: 0.661233
+Iter: 30000  Accept Rate: 0.6655
+Iter: 30000  Accept Rate: 0.6574
+Iter: 30000  Accept Rate: 0.659467
+Iter: 30000  Accept Rate: 0.659833
+Iter: 10000  Accept Rate: 0.6634
+Iter: 10000  Accept Rate: 0.6558
+Iter: 40000  Accept Rate: 0.6595
+Iter: 40000  Accept Rate: 0.66335
+Iter: 40000  Accept Rate: 0.65995
+Iter: 40000  Accept Rate: 0.661
+Iter: 40000  Accept Rate: 0.663125
+Iter: 40000  Accept Rate: 0.656525
+Iter: 40000  Accept Rate: 0.659375
+Iter: 40000  Accept Rate: 0.659775
+Iter: 20000  Accept Rate: 0.6581
+Iter: 20000  Accept Rate: 0.66135
+Iter: 50000  Accept Rate: 0.66082
+Iter: 50000  Accept Rate: 0.66268
+Iter: 50000  Accept Rate: 0.65964
+Iter: 50000  Accept Rate: 0.66248
+Iter: 50000  Accept Rate: 0.66072
+Iter: 50000  Accept Rate: 0.65754
+Iter: 50000  Accept Rate: 0.66028
+Iter: 50000  Accept Rate: 0.66074
+Iter: 30000  Accept Rate: 0.659567
+Iter: 30000  Accept Rate: 0.6646
+Iter: 60000  Accept Rate: 0.6607
+Iter: 60000  Accept Rate: 0.662033
+Iter: 60000  Accept Rate: 0.65915
+Iter: 60000  Accept Rate: 0.6625
+Iter: 60000  Accept Rate: 0.6625
+Iter: 60000  Accept Rate: 0.657233
+Iter: 60000  Accept Rate: 0.661917
+Iter: 60000  Accept Rate: 0.66105
+Iter: 40000  Accept Rate: 0.657875
+Iter: 40000  Accept Rate: 0.6614
+Iter: 70000  Accept Rate: 0.661714
+Iter: 70000  Accept Rate: 0.661171
+Iter: 70000  Accept Rate: 0.659157
+Iter: 70000  Accept Rate: 0.6609
+Iter: 70000  Accept Rate: 0.6627
+Iter: 70000  Accept Rate: 0.6569
+Iter: 70000  Accept Rate: 0.661186
+Iter: 70000  Accept Rate: 0.660929
+Iter: 50000  Accept Rate: 0.6574
+Iter: 50000  Accept Rate: 0.6597
+Iter: 80000  Accept Rate: 0.6625
+Iter: 80000  Accept Rate: 0.66
+Iter: 80000  Accept Rate: 0.659013
+Iter: 80000  Accept Rate: 0.660737
+Iter: 80000  Accept Rate: 0.662675
+Iter: 80000  Accept Rate: 0.656737
+Iter: 80000  Accept Rate: 0.661238
+Iter: 80000  Accept Rate: 0.66115
+Iter: 60000  Accept Rate: 0.6576
+Iter: 60000  Accept Rate: 0.661233
+Iter: 90000  Accept Rate: 0.662811
+Iter: 90000  Accept Rate: 0.659756
+Iter: 90000  Accept Rate: 0.658778
+Iter: 90000  Accept Rate: 0.660778
+Iter: 90000  Accept Rate: 0.661833
+Iter: 90000  Accept Rate: 0.6574
+Iter: 90000  Accept Rate: 0.660522
+Iter: 90000  Accept Rate: 0.662311
+Iter: 70000  Accept Rate: 0.657143
+Iter: 70000  Accept Rate: 0.6623
+Final Acceptance Rate: 0.66231
+[1] 31
+Final Acceptance Rate: 0.65851
+Final Acceptance Rate: 0.66019
+[1] 34
+[1] 36
+Final Acceptance Rate: 0.65991
+[1] 32
+Final Acceptance Rate: 0.662
+[1] 37
+Final Acceptance Rate: 0.65825
+Final Acceptance Rate: 0.6593
+Final Acceptance Rate: 0.66228
+[1] 40
+[1] 38
+[1] 39
+Iter: 80000  Accept Rate: 0.658038
+Iter: 10000  Accept Rate: 0.7258
+Iter: 80000  Accept Rate: 0.661013
+Iter: 10000  Accept Rate: 0.7279
+Iter: 20000  Accept Rate: 0.729
+Iter: 20000  Accept Rate: 0.72905
+Iter: 30000  Accept Rate: 0.7259
+Iter: 30000  Accept Rate: 0.7302
+Iter: 40000  Accept Rate: 0.72495
+Iter: 10000  Accept Rate: 0.6536
+Iter: 40000  Accept Rate: 0.7296
+Iter: 10000  Accept Rate: 0.6611
+Iter: 10000  Accept Rate: 0.662
+Iter: 10000  Accept Rate: 0.6657
+Iter: 10000  Accept Rate: 0.6526
+Iter: 50000  Accept Rate: 0.72604
+Iter: 10000  Accept Rate: 0.6676
+Iter: 90000  Accept Rate: 0.659278
+Iter: 50000  Accept Rate: 0.72992
+Iter: 90000  Accept Rate: 0.661789
+Iter: 60000  Accept Rate: 0.72725
+Iter: 60000  Accept Rate: 0.731417
+Iter: 70000  Accept Rate: 0.728129
+Iter: 70000  Accept Rate: 0.730143
+Iter: 80000  Accept Rate: 0.727463
+Iter: 80000  Accept Rate: 0.7291
+Iter: 20000  Accept Rate: 0.65985
+Iter: 20000  Accept Rate: 0.65815
+Iter: 90000  Accept Rate: 0.727156
+Iter: 20000  Accept Rate: 0.6589
+Iter: 20000  Accept Rate: 0.662
+Iter: 20000  Accept Rate: 0.65745
+Iter: 90000  Accept Rate: 0.728833
+Iter: 20000  Accept Rate: 0.66285
+Final Acceptance Rate: 0.65915
+Final Acceptance Rate: 0.72777
+[1] 43
+[1] 44
+Final Acceptance Rate: 0.66106
+[1] 45
+Final Acceptance Rate: 0.729
+[1] 48
+Iter: 10000  Accept Rate: 0.7375
+Iter: 20000  Accept Rate: 0.7325
+Iter: 30000  Accept Rate: 0.732667
+Iter: 30000  Accept Rate: 0.6613
+Iter: 30000  Accept Rate: 0.6583
+Iter: 30000  Accept Rate: 0.660133
+Iter: 30000  Accept Rate: 0.660767
+Iter: 30000  Accept Rate: 0.6563
+Iter: 30000  Accept Rate: 0.663933
+Iter: 40000  Accept Rate: 0.734275
+Iter: 10000  Accept Rate: 0.6608
+Iter: 10000  Accept Rate: 0.6557
+Iter: 10000  Accept Rate: 0.6578
+Iter: 50000  Accept Rate: 0.73504
+Iter: 60000  Accept Rate: 0.733767
+Iter: 70000  Accept Rate: 0.733371
+Iter: 40000  Accept Rate: 0.6632
+Iter: 40000  Accept Rate: 0.65965
+Iter: 80000  Accept Rate: 0.7327
+Iter: 40000  Accept Rate: 0.658175
+Iter: 40000  Accept Rate: 0.661425
+Iter: 40000  Accept Rate: 0.6585
+Iter: 40000  Accept Rate: 0.663025
+Iter: 20000  Accept Rate: 0.6621
+Iter: 20000  Accept Rate: 0.66005
+Iter: 90000  Accept Rate: 0.731578
+Iter: 20000  Accept Rate: 0.6584
+Final Acceptance Rate: 0.73112
+[1] 55
+Iter: 50000  Accept Rate: 0.66338
+Iter: 50000  Accept Rate: 0.65892
+Iter: 50000  Accept Rate: 0.6569
+Iter: 50000  Accept Rate: 0.66102
+Iter: 50000  Accept Rate: 0.65718
+Iter: 50000  Accept Rate: 0.66236
+Iter: 30000  Accept Rate: 0.665433
+Iter: 30000  Accept Rate: 0.660533
+Iter: 30000  Accept Rate: 0.660267
+Iter: 10000  Accept Rate: 0.6618
+Iter: 60000  Accept Rate: 0.661967
+Iter: 60000  Accept Rate: 0.659067
+Iter: 60000  Accept Rate: 0.65755
+Iter: 60000  Accept Rate: 0.658883
+Iter: 60000  Accept Rate: 0.658083
+Iter: 60000  Accept Rate: 0.6632
+Iter: 40000  Accept Rate: 0.66455
+Iter: 40000  Accept Rate: 0.6588
+Iter: 40000  Accept Rate: 0.658475
+Iter: 20000  Accept Rate: 0.6624
+Iter: 70000  Accept Rate: 0.661171
+Iter: 70000  Accept Rate: 0.658814
+Iter: 70000  Accept Rate: 0.658786
+Iter: 70000  Accept Rate: 0.658371
+Iter: 70000  Accept Rate: 0.658843
+Iter: 70000  Accept Rate: 0.662271
+Iter: 50000  Accept Rate: 0.6649
+Iter: 50000  Accept Rate: 0.65994
+Iter: 50000  Accept Rate: 0.65746
+Iter: 30000  Accept Rate: 0.659667
+Iter: 80000  Accept Rate: 0.662212
+Iter: 80000  Accept Rate: 0.659262
+Iter: 80000  Accept Rate: 0.658687
+Iter: 80000  Accept Rate: 0.659425
+Iter: 80000  Accept Rate: 0.658188
+Iter: 80000  Accept Rate: 0.661412
+Iter: 60000  Accept Rate: 0.663267
+Iter: 60000  Accept Rate: 0.659517
+Iter: 60000  Accept Rate: 0.657983
+Iter: 40000  Accept Rate: 0.659625
+Iter: 90000  Accept Rate: 0.6618
+Iter: 90000  Accept Rate: 0.660033
+Iter: 90000  Accept Rate: 0.659478
+Iter: 90000  Accept Rate: 0.659133
+Iter: 90000  Accept Rate: 0.657667
+Iter: 90000  Accept Rate: 0.660356
+Iter: 70000  Accept Rate: 0.6631
+Iter: 70000  Accept Rate: 0.660243
+Iter: 70000  Accept Rate: 0.659286
+Iter: 50000  Accept Rate: 0.66012
+Final Acceptance Rate: 0.66181
+[1] 41
+Final Acceptance Rate: 0.65945
+[1] 46
+Final Acceptance Rate: 0.65902
+[1] 42
+Final Acceptance Rate: 0.65904
+[1] 47
+Final Acceptance Rate: 0.65748
+Final Acceptance Rate: 0.65984
+[1] 50
+[1] 49
+Iter: 80000  Accept Rate: 0.662875
+Iter: 80000  Accept Rate: 0.660875
+Iter: 80000  Accept Rate: 0.660512
+Iter: 60000  Accept Rate: 0.65915
+Iter: 10000  Accept Rate: 0.6524
+Iter: 10000  Accept Rate: 0.6601
+Iter: 10000  Accept Rate: 0.6628
+Iter: 10000  Accept Rate: 0.6638
+Iter: 10000  Accept Rate: 0.6596
+Iter: 10000  Accept Rate: 0.6603
+Iter: 90000  Accept Rate: 0.663767
+Iter: 90000  Accept Rate: 0.6606
+Iter: 90000  Accept Rate: 0.660822
+Iter: 70000  Accept Rate: 0.658514
+Iter: 20000  Accept Rate: 0.6539
+Iter: 20000  Accept Rate: 0.65785
+Iter: 20000  Accept Rate: 0.6587
+Iter: 20000  Accept Rate: 0.65835
+Iter: 20000  Accept Rate: 0.6629
+Iter: 20000  Accept Rate: 0.6585
+Final Acceptance Rate: 0.6624
+Final Acceptance Rate: 0.65907
+[1] 54
+[1] 53
+Final Acceptance Rate: 0.66112
+[1] 58
+Iter: 80000  Accept Rate: 0.658887
+Iter: 30000  Accept Rate: 0.655667
+Iter: 30000  Accept Rate: 0.6623
+Iter: 30000  Accept Rate: 0.659167
+Iter: 30000  Accept Rate: 0.6581
+Iter: 30000  Accept Rate: 0.665667
+Iter: 30000  Accept Rate: 0.661533
+Iter: 10000  Accept Rate: 0.6591
+Iter: 10000  Accept Rate: 0.6641
+Iter: 10000  Accept Rate: 0.6621
+Iter: 90000  Accept Rate: 0.659211
+Iter: 40000  Accept Rate: 0.656725
+Iter: 40000  Accept Rate: 0.66365
+Iter: 40000  Accept Rate: 0.659425
+Iter: 40000  Accept Rate: 0.657825
+Iter: 40000  Accept Rate: 0.665
+Iter: 40000  Accept Rate: 0.6623
+Iter: 20000  Accept Rate: 0.66745
+Iter: 20000  Accept Rate: 0.66105
+Iter: 20000  Accept Rate: 0.65735
+Final Acceptance Rate: 0.65964
+[1] 65
+Iter: 50000  Accept Rate: 0.65694
+Iter: 50000  Accept Rate: 0.66318
+Iter: 50000  Accept Rate: 0.65816
+Iter: 50000  Accept Rate: 0.65924
+Iter: 50000  Accept Rate: 0.66194
+Iter: 50000  Accept Rate: 0.6637
+Iter: 30000  Accept Rate: 0.660433
+Iter: 30000  Accept Rate: 0.661567
+Iter: 30000  Accept Rate: 0.660967
+Iter: 10000  Accept Rate: 0.65
+Iter: 60000  Accept Rate: 0.6574
+Iter: 60000  Accept Rate: 0.6622
+Iter: 60000  Accept Rate: 0.65695
+Iter: 60000  Accept Rate: 0.659
+Iter: 60000  Accept Rate: 0.662233
+Iter: 60000  Accept Rate: 0.663683
+Iter: 40000  Accept Rate: 0.6578
+Iter: 40000  Accept Rate: 0.661925
+Iter: 40000  Accept Rate: 0.663225
+Iter: 20000  Accept Rate: 0.65415
+Iter: 70000  Accept Rate: 0.656129
+Iter: 70000  Accept Rate: 0.661557
+Iter: 70000  Accept Rate: 0.657457
+Iter: 70000  Accept Rate: 0.659829
+Iter: 70000  Accept Rate: 0.661286
+Iter: 70000  Accept Rate: 0.663371
+Iter: 50000  Accept Rate: 0.65948
+Iter: 50000  Accept Rate: 0.66076
+Iter: 50000  Accept Rate: 0.66244
+Iter: 30000  Accept Rate: 0.656933
+Iter: 80000  Accept Rate: 0.656288
+Iter: 80000  Accept Rate: 0.662088
+Iter: 80000  Accept Rate: 0.6572
+Iter: 80000  Accept Rate: 0.659663
+Iter: 80000  Accept Rate: 0.660512
+Iter: 80000  Accept Rate: 0.663563
+Iter: 60000  Accept Rate: 0.658633
+Iter: 60000  Accept Rate: 0.660633
+Iter: 60000  Accept Rate: 0.663317
+Iter: 40000  Accept Rate: 0.6583
+Iter: 90000  Accept Rate: 0.657444
+Iter: 90000  Accept Rate: 0.661256
+Iter: 90000  Accept Rate: 0.656133
+Iter: 90000  Accept Rate: 0.660333
+Iter: 90000  Accept Rate: 0.660222
+Iter: 90000  Accept Rate: 0.6637
+Iter: 70000  Accept Rate: 0.658871
+Iter: 70000  Accept Rate: 0.660714
+Iter: 70000  Accept Rate: 0.663443
+Iter: 50000  Accept Rate: 0.65846
+Final Acceptance Rate: 0.65773
+[1] 51
+Final Acceptance Rate: 0.66241
+[1] 56
+Final Acceptance Rate: 0.65772
+[1] 52
+Final Acceptance Rate: 0.66067
+[1] 57
+Final Acceptance Rate: 0.6605
+Final Acceptance Rate: 0.66286
+[1] 59
+[1] 60
+Iter: 80000  Accept Rate: 0.658238
+Iter: 80000  Accept Rate: 0.66085
+Iter: 80000  Accept Rate: 0.66275
+Iter: 60000  Accept Rate: 0.658717
+Iter: 10000  Accept Rate: 0.6606
+Iter: 10000  Accept Rate: 0.6645
+Iter: 10000  Accept Rate: 0.6546
+Iter: 10000  Accept Rate: 0.6674
+Iter: 10000  Accept Rate: 0.66
+Iter: 10000  Accept Rate: 0.6664
+Iter: 90000  Accept Rate: 0.658367
+Iter: 90000  Accept Rate: 0.661722
+Iter: 90000  Accept Rate: 0.663211
+Iter: 70000  Accept Rate: 0.658243
+Iter: 20000  Accept Rate: 0.6574
+Iter: 20000  Accept Rate: 0.66535
+Iter: 20000  Accept Rate: 0.6606
+Iter: 20000  Accept Rate: 0.66245
+Iter: 20000  Accept Rate: 0.6583
+Iter: 20000  Accept Rate: 0.66125
+Final Acceptance Rate: 0.65719
+[1] 64
+Final Acceptance Rate: 0.66185
+[1] 63
+Final Acceptance Rate: 0.66268
+[1] 68
+Iter: 80000  Accept Rate: 0.65865
+Iter: 30000  Accept Rate: 0.658533
+Iter: 30000  Accept Rate: 0.6629
+Iter: 30000  Accept Rate: 0.6603
+Iter: 30000  Accept Rate: 0.6648
+Iter: 30000  Accept Rate: 0.6572
+Iter: 30000  Accept Rate: 0.664267
+Iter: 10000  Accept Rate: 0.6645
+Iter: 10000  Accept Rate: 0.6564
+Iter: 10000  Accept Rate: 0.6621
+Iter: 90000  Accept Rate: 0.6585
+Iter: 40000  Accept Rate: 0.658775
+Iter: 40000  Accept Rate: 0.663925
+Iter: 40000  Accept Rate: 0.659825
+Iter: 40000  Accept Rate: 0.663175
+Iter: 40000  Accept Rate: 0.658425
+Iter: 40000  Accept Rate: 0.66475
+Iter: 20000  Accept Rate: 0.6602
+Iter: 20000  Accept Rate: 0.6591
+Iter: 20000  Accept Rate: 0.65965
+Final Acceptance Rate: 0.65869
+[1] 75
+Iter: 50000  Accept Rate: 0.6577
+Iter: 50000  Accept Rate: 0.66416
+Iter: 50000  Accept Rate: 0.6603
+Iter: 50000  Accept Rate: 0.66242
+Iter: 50000  Accept Rate: 0.6567
+Iter: 50000  Accept Rate: 0.6626
+Iter: 30000  Accept Rate: 0.6598
+Iter: 30000  Accept Rate: 0.658767
+Iter: 30000  Accept Rate: 0.657
+Iter: 10000  Accept Rate: 0.6686
+Iter: 60000  Accept Rate: 0.657633
+Iter: 60000  Accept Rate: 0.663383
+Iter: 60000  Accept Rate: 0.660617
+Iter: 60000  Accept Rate: 0.66215
+Iter: 60000  Accept Rate: 0.656733
+Iter: 60000  Accept Rate: 0.6622
+Iter: 40000  Accept Rate: 0.659675
+Iter: 40000  Accept Rate: 0.659925
+Iter: 40000  Accept Rate: 0.6557
+Iter: 20000  Accept Rate: 0.65805
+Iter: 70000  Accept Rate: 0.658757
+Iter: 70000  Accept Rate: 0.662986
+Iter: 70000  Accept Rate: 0.658814
+Iter: 70000  Accept Rate: 0.6621
+Iter: 70000  Accept Rate: 0.656986
+Iter: 70000  Accept Rate: 0.662486
+Iter: 50000  Accept Rate: 0.66052
+Iter: 50000  Accept Rate: 0.66284
+Iter: 50000  Accept Rate: 0.6591
+Iter: 30000  Accept Rate: 0.658133
+Iter: 80000  Accept Rate: 0.6592
+Iter: 80000  Accept Rate: 0.663438
+Iter: 80000  Accept Rate: 0.658925
+Iter: 80000  Accept Rate: 0.662425
+Iter: 80000  Accept Rate: 0.65755
+Iter: 80000  Accept Rate: 0.661687
+Iter: 60000  Accept Rate: 0.660933
+Iter: 60000  Accept Rate: 0.66325
+Iter: 60000  Accept Rate: 0.659267
+Iter: 40000  Accept Rate: 0.659075
+Iter: 90000  Accept Rate: 0.659722
+Iter: 90000  Accept Rate: 0.662956
+Iter: 90000  Accept Rate: 0.659178
+Iter: 90000  Accept Rate: 0.662222
+Iter: 90000  Accept Rate: 0.657222
+Iter: 90000  Accept Rate: 0.661289
+Iter: 70000  Accept Rate: 0.660943
+Iter: 70000  Accept Rate: 0.6631
+Iter: 70000  Accept Rate: 0.659671
+Iter: 50000  Accept Rate: 0.65902
+Final Acceptance Rate: 0.65951
+[1] 61
+Final Acceptance Rate: 0.66139
+[1] 66
+Final Acceptance Rate: 0.65959
+[1] 62
+Final Acceptance Rate: 0.66277
+[1] 67
+Final Acceptance Rate: 0.65708
+Final Acceptance Rate: 0.66185
+[1] 69
+[1] 70
+Iter: 80000  Accept Rate: 0.661062
+Iter: 80000  Accept Rate: 0.6626
+Iter: 80000  Accept Rate: 0.660088
+Iter: 60000  Accept Rate: 0.658417
+Iter: 10000  Accept Rate: 0.6594
+Iter: 10000  Accept Rate: 0.6663
+Iter: 10000  Accept Rate: 0.6576
+Iter: 10000  Accept Rate: 0.6534
+Iter: 10000  Accept Rate: 0.6673
+Iter: 10000  Accept Rate: 0.6577
+Iter: 90000  Accept Rate: 0.660467
+Iter: 90000  Accept Rate: 0.662211
+Iter: 90000  Accept Rate: 0.66
+Iter: 70000  Accept Rate: 0.660414
+Iter: 20000  Accept Rate: 0.66035
+Iter: 20000  Accept Rate: 0.66215
+Iter: 20000  Accept Rate: 0.65955
+Iter: 20000  Accept Rate: 0.65825
+Iter: 20000  Accept Rate: 0.66215
+Iter: 20000  Accept Rate: 0.6599
+Final Acceptance Rate: 0.66036
+[1] 74
+Final Acceptance Rate: 0.66157
+[1] 73
+Final Acceptance Rate: 0.65917
+[1] 78
+Iter: 10000  Accept Rate: 0.7402
+Iter: 80000  Accept Rate: 0.660925
+Iter: 20000  Accept Rate: 0.73695
+Iter: 30000  Accept Rate: 0.734433
+Iter: 30000  Accept Rate: 0.6635
+Iter: 30000  Accept Rate: 0.662067
+Iter: 30000  Accept Rate: 0.663367
+Iter: 40000  Accept Rate: 0.73365
+Iter: 30000  Accept Rate: 0.6594
+Iter: 30000  Accept Rate: 0.6606
+Iter: 30000  Accept Rate: 0.660233
+Iter: 10000  Accept Rate: 0.6643
+Iter: 50000  Accept Rate: 0.73386
+Iter: 10000  Accept Rate: 0.6695
+Iter: 90000  Accept Rate: 0.660622
+Iter: 60000  Accept Rate: 0.733267
+Iter: 70000  Accept Rate: 0.733871
+Iter: 40000  Accept Rate: 0.663075
+Iter: 80000  Accept Rate: 0.73415
+Iter: 40000  Accept Rate: 0.663
+Iter: 40000  Accept Rate: 0.664
+Iter: 40000  Accept Rate: 0.661075
+Iter: 40000  Accept Rate: 0.660875
+Iter: 40000  Accept Rate: 0.65985
+Iter: 90000  Accept Rate: 0.734111
+Iter: 20000  Accept Rate: 0.6606
+Iter: 20000  Accept Rate: 0.66125
+Final Acceptance Rate: 0.73391
+[1] 84
+Final Acceptance Rate: 0.66131
+[1] 85
+Iter: 50000  Accept Rate: 0.66192
+Iter: 50000  Accept Rate: 0.66184
+Iter: 50000  Accept Rate: 0.66212
+Iter: 50000  Accept Rate: 0.66028
+Iter: 50000  Accept Rate: 0.66084
+Iter: 50000  Accept Rate: 0.6582
+Iter: 30000  Accept Rate: 0.660467
+Iter: 30000  Accept Rate: 0.6607
+Iter: 10000  Accept Rate: 0.6593
+Iter: 10000  Accept Rate: 0.6661
+Iter: 60000  Accept Rate: 0.661233
+Iter: 60000  Accept Rate: 0.661417
+Iter: 60000  Accept Rate: 0.660467
+Iter: 60000  Accept Rate: 0.660017
+Iter: 60000  Accept Rate: 0.660533
+Iter: 60000  Accept Rate: 0.65955
+Iter: 40000  Accept Rate: 0.662825
+Iter: 40000  Accept Rate: 0.660125
+Iter: 20000  Accept Rate: 0.6617
+Iter: 20000  Accept Rate: 0.6639
+Iter: 70000  Accept Rate: 0.661157
+Iter: 70000  Accept Rate: 0.662586
+Iter: 70000  Accept Rate: 0.660086
+Iter: 70000  Accept Rate: 0.658371
+Iter: 70000  Accept Rate: 0.660943
+Iter: 70000  Accept Rate: 0.659843
+Iter: 50000  Accept Rate: 0.66218
+Iter: 50000  Accept Rate: 0.66058
+Iter: 30000  Accept Rate: 0.6596
+Iter: 30000  Accept Rate: 0.6613
+Iter: 80000  Accept Rate: 0.661488
+Iter: 80000  Accept Rate: 0.663138
+Iter: 80000  Accept Rate: 0.661112
+Iter: 80000  Accept Rate: 0.658687
+Iter: 80000  Accept Rate: 0.6613
+Iter: 80000  Accept Rate: 0.660038
+Iter: 60000  Accept Rate: 0.661983
+Iter: 60000  Accept Rate: 0.658867
+Iter: 40000  Accept Rate: 0.659825
+Iter: 40000  Accept Rate: 0.661675
+Iter: 90000  Accept Rate: 0.659444
+Iter: 90000  Accept Rate: 0.662844
+Iter: 90000  Accept Rate: 0.660344
+Iter: 90000  Accept Rate: 0.658633
+Iter: 90000  Accept Rate: 0.660556
+Iter: 90000  Accept Rate: 0.660556
+Iter: 70000  Accept Rate: 0.661314
+Iter: 70000  Accept Rate: 0.659557
+Iter: 50000  Accept Rate: 0.65986
+Iter: 50000  Accept Rate: 0.66288
+Final Acceptance Rate: 0.65907
+[1] 71
+Final Acceptance Rate: 0.66284
+[1] 76
+Final Acceptance Rate: 0.66088
+[1] 72
+Final Acceptance Rate: 0.65861
+[1] 77
+Final Acceptance Rate: 0.6601
+Final Acceptance Rate: 0.66152
+[1] 79
+[1] 80
+Iter: 80000  Accept Rate: 0.661162
+Iter: 80000  Accept Rate: 0.659013
+Iter: 60000  Accept Rate: 0.658817
+Iter: 60000  Accept Rate: 0.6617
+Iter: 10000  Accept Rate: 0.6534
+Iter: 10000  Accept Rate: 0.6648
+Iter: 10000  Accept Rate: 0.6673
+Iter: 10000  Accept Rate: 0.65
+Iter: 10000  Accept Rate: 0.6544
+Iter: 10000  Accept Rate: 0.6434
+Iter: 90000  Accept Rate: 0.660956
+Iter: 90000  Accept Rate: 0.659056
+Iter: 70000  Accept Rate: 0.658143
+Iter: 70000  Accept Rate: 0.661371
+Iter: 20000  Accept Rate: 0.65835
+Iter: 20000  Accept Rate: 0.6577
+Iter: 20000  Accept Rate: 0.66285
+Iter: 20000  Accept Rate: 0.65665
+Iter: 20000  Accept Rate: 0.66035
+Iter: 20000  Accept Rate: 0.6531
+Final Acceptance Rate: 0.66028
+[1] 83
+Final Acceptance Rate: 0.65924
+[1] 88
+Iter: 80000  Accept Rate: 0.65745
+Iter: 80000  Accept Rate: 0.660837
+Iter: 10000  Accept Rate: 0.7256
+Iter: 20000  Accept Rate: 0.7282
+Iter: 30000  Accept Rate: 0.660167
+Iter: 30000  Accept Rate: 0.6598
+Iter: 30000  Accept Rate: 0.6615
+Iter: 30000  Accept Rate: 0.727367
+Iter: 30000  Accept Rate: 0.661067
+Iter: 30000  Accept Rate: 0.6618
+Iter: 30000  Accept Rate: 0.656167
+Iter: 10000  Accept Rate: 0.6615
+Iter: 40000  Accept Rate: 0.72905
+Iter: 90000  Accept Rate: 0.658378
+Iter: 90000  Accept Rate: 0.661144
+Iter: 50000  Accept Rate: 0.73018
+Iter: 60000  Accept Rate: 0.729483
+Iter: 40000  Accept Rate: 0.66
+Iter: 40000  Accept Rate: 0.657575
+Iter: 70000  Accept Rate: 0.731171
+Iter: 40000  Accept Rate: 0.660925
+Iter: 40000  Accept Rate: 0.65925
+Iter: 40000  Accept Rate: 0.6641
+Iter: 40000  Accept Rate: 0.656275
+Iter: 20000  Accept Rate: 0.66005
+Iter: 80000  Accept Rate: 0.730825
+Final Acceptance Rate: 0.65836
+[1] 94
+Iter: 90000  Accept Rate: 0.730622
+Final Acceptance Rate: 0.66079
+[1] 95
+Final Acceptance Rate: 0.73185
+[1] 98
+Iter: 50000  Accept Rate: 0.65892
+Iter: 50000  Accept Rate: 0.65896
+Iter: 50000  Accept Rate: 0.65892
+Iter: 50000  Accept Rate: 0.659
+Iter: 50000  Accept Rate: 0.66272
+Iter: 50000  Accept Rate: 0.65558
+Iter: 30000  Accept Rate: 0.664
+Iter: 10000  Accept Rate: 0.6563
+Iter: 10000  Accept Rate: 0.6627
+Iter: 10000  Accept Rate: 0.6633
+Iter: 60000  Accept Rate: 0.658833
+Iter: 60000  Accept Rate: 0.66005
+Iter: 60000  Accept Rate: 0.659183
+Iter: 60000  Accept Rate: 0.6599
+Iter: 60000  Accept Rate: 0.662333
+Iter: 60000  Accept Rate: 0.656133
+Iter: 40000  Accept Rate: 0.66265
+Iter: 20000  Accept Rate: 0.65845
+Iter: 20000  Accept Rate: 0.6602
+Iter: 20000  Accept Rate: 0.6598
+Iter: 70000  Accept Rate: 0.659329
+Iter: 70000  Accept Rate: 0.660943
+Iter: 70000  Accept Rate: 0.657929
+Iter: 70000  Accept Rate: 0.659657
+Iter: 70000  Accept Rate: 0.662243
+Iter: 70000  Accept Rate: 0.656529
+Iter: 50000  Accept Rate: 0.66092
+Iter: 30000  Accept Rate: 0.6577
+Iter: 30000  Accept Rate: 0.660333
+Iter: 30000  Accept Rate: 0.661767
+Iter: 80000  Accept Rate: 0.659825
+Iter: 80000  Accept Rate: 0.660488
+Iter: 80000  Accept Rate: 0.659162
+Iter: 80000  Accept Rate: 0.659262
+Iter: 80000  Accept Rate: 0.662212
+Iter: 80000  Accept Rate: 0.656975
+Iter: 60000  Accept Rate: 0.660617
+Iter: 40000  Accept Rate: 0.658725
+Iter: 40000  Accept Rate: 0.660925
+Iter: 40000  Accept Rate: 0.66445
+Iter: 90000  Accept Rate: 0.660511
+Iter: 90000  Accept Rate: 0.660033
+Iter: 90000  Accept Rate: 0.658522
+Iter: 90000  Accept Rate: 0.6597
+Iter: 90000  Accept Rate: 0.6614
+Iter: 90000  Accept Rate: 0.658089
+Iter: 70000  Accept Rate: 0.660771
+Iter: 50000  Accept Rate: 0.65882
+Iter: 50000  Accept Rate: 0.66046
+Iter: 50000  Accept Rate: 0.66478
+Final Acceptance Rate: 0.65999
+[1] 81
+Final Acceptance Rate: 0.66045
+[1] 86
+Final Acceptance Rate: 0.65904
+[1] 82
+Final Acceptance Rate: 0.66052
+[1] 87
+Final Acceptance Rate: 0.66153
+Final Acceptance Rate: 0.65908
+[1] 89
+[1] 90
+Iter: 80000  Accept Rate: 0.660837
+Iter: 10000  Accept Rate: 0.7306
+Iter: 60000  Accept Rate: 0.6603
+Iter: 60000  Accept Rate: 0.660867
+Iter: 20000  Accept Rate: 0.7293
+Iter: 60000  Accept Rate: 0.663333
+Iter: 30000  Accept Rate: 0.7288
+Iter: 10000  Accept Rate: 0.6541
+Iter: 40000  Accept Rate: 0.7292
+Iter: 10000  Accept Rate: 0.6573
+Iter: 10000  Accept Rate: 0.6574
+Iter: 10000  Accept Rate: 0.6632
+Iter: 10000  Accept Rate: 0.6722
+Iter: 50000  Accept Rate: 0.73106
+Iter: 90000  Accept Rate: 0.6617
+Iter: 60000  Accept Rate: 0.731767
+Iter: 70000  Accept Rate: 0.66
+Iter: 70000  Accept Rate: 0.660986
+Iter: 70000  Accept Rate: 0.732557
+Iter: 70000  Accept Rate: 0.663371
+Iter: 80000  Accept Rate: 0.731175
+Iter: 20000  Accept Rate: 0.65655
+Iter: 20000  Accept Rate: 0.66275
+Iter: 90000  Accept Rate: 0.731356
+Iter: 20000  Accept Rate: 0.65815
+Iter: 20000  Accept Rate: 0.6663
+Iter: 20000  Accept Rate: 0.67075
+Final Acceptance Rate: 0.66178
+[1] 93
+Final Acceptance Rate: 0.73193
+[1] 92
+Iter: 80000  Accept Rate: 0.659462
+Iter: 80000  Accept Rate: 0.660913
+Iter: 80000  Accept Rate: 0.663563
+Iter: 30000  Accept Rate: 0.656833
+Iter: 30000  Accept Rate: 0.6612
+Iter: 30000  Accept Rate: 0.6558
+Iter: 30000  Accept Rate: 0.665467
+Iter: 30000  Accept Rate: 0.668
+Iter: 10000  Accept Rate: 0.6549
+Iter: 10000  Accept Rate: 0.6683
+Iter: 90000  Accept Rate: 0.659111
+Iter: 90000  Accept Rate: 0.660189
+Iter: 90000  Accept Rate: 0.662567
+Iter: 40000  Accept Rate: 0.65755
+Iter: 40000  Accept Rate: 0.6601
+Iter: 40000  Accept Rate: 0.659
+Iter: 40000  Accept Rate: 0.662825
+Iter: 40000  Accept Rate: 0.66565
+Iter: 20000  Accept Rate: 0.6529
+Iter: 20000  Accept Rate: 0.66165
+Final Acceptance Rate: 0.65874
+Final Acceptance Rate: 0.66077
+Final Acceptance Rate: 0.66251
+Iter: 50000  Accept Rate: 0.65694
+Iter: 50000  Accept Rate: 0.66192
+Iter: 50000  Accept Rate: 0.65854
+Iter: 50000  Accept Rate: 0.66222
+Iter: 50000  Accept Rate: 0.66402
+Iter: 30000  Accept Rate: 0.6548
+Iter: 30000  Accept Rate: 0.6567
+Iter: 60000  Accept Rate: 0.658483
+Iter: 60000  Accept Rate: 0.662017
+Iter: 40000  Accept Rate: 0.6566
+Iter: 60000  Accept Rate: 0.65855
+Iter: 60000  Accept Rate: 0.662267
+Iter: 60000  Accept Rate: 0.664217
+Iter: 40000  Accept Rate: 0.657275
+Iter: 70000  Accept Rate: 0.658314
+Iter: 70000  Accept Rate: 0.663
+Iter: 50000  Accept Rate: 0.65654
+Iter: 70000  Accept Rate: 0.6574
+Iter: 70000  Accept Rate: 0.661486
+Iter: 70000  Accept Rate: 0.663714
+Iter: 50000  Accept Rate: 0.65908
+Iter: 80000  Accept Rate: 0.662625
+Iter: 80000  Accept Rate: 0.6588
+Iter: 60000  Accept Rate: 0.656883
+Iter: 80000  Accept Rate: 0.657863
+Iter: 80000  Accept Rate: 0.661475
+Iter: 80000  Accept Rate: 0.662062
+Iter: 60000  Accept Rate: 0.659833
+Iter: 90000  Accept Rate: 0.662644
+Iter: 90000  Accept Rate: 0.659122
+Iter: 70000  Accept Rate: 0.658157
+Iter: 90000  Accept Rate: 0.657689
+Iter: 90000  Accept Rate: 0.6616
+Iter: 90000  Accept Rate: 0.661922
+Iter: 70000  Accept Rate: 0.659814
+Final Acceptance Rate: 0.6618
+[1] 96
+Final Acceptance Rate: 0.66004
+[1] 91
+Iter: 80000  Accept Rate: 0.65745
+Final Acceptance Rate: 0.65762
+[1] 97
+Final Acceptance Rate: 0.66166
+Final Acceptance Rate: 0.66266
+[1] 99
+[1] 100
+Iter: 80000  Accept Rate: 0.6599
+Iter: 10000  Accept Rate: 0.7287
+Iter: 20000  Accept Rate: 0.72585
+Iter: 10000  Accept Rate: 0.659
+Iter: 90000  Accept Rate: 0.658211
+Iter: 30000  Accept Rate: 0.725033
+Iter: 10000  Accept Rate: 0.6593
+Iter: 40000  Accept Rate: 0.7265
+Iter: 10000  Accept Rate: 0.6628
+Iter: 10000  Accept Rate: 0.6732
+Iter: 50000  Accept Rate: 0.72768
+Iter: 90000  Accept Rate: 0.659622
+Iter: 60000  Accept Rate: 0.728083
+Iter: 20000  Accept Rate: 0.65775
+Iter: 70000  Accept Rate: 0.728186
+Final Acceptance Rate: 0.65913
+Iter: 20000  Accept Rate: 0.6572
+Iter: 80000  Accept Rate: 0.728213
+Iter: 20000  Accept Rate: 0.6565
+Iter: 20000  Accept Rate: 0.66435
+Iter: 90000  Accept Rate: 0.729056
+Final Acceptance Rate: 0.65965
+Final Acceptance Rate: 0.72888
+Iter: 30000  Accept Rate: 0.661233
+Iter: 30000  Accept Rate: 0.655367
+Iter: 30000  Accept Rate: 0.658567
+Iter: 30000  Accept Rate: 0.6594
+Iter: 40000  Accept Rate: 0.661475
+Iter: 40000  Accept Rate: 0.65545
+Iter: 40000  Accept Rate: 0.659625
+Iter: 40000  Accept Rate: 0.65895
+Iter: 50000  Accept Rate: 0.66046
+Iter: 50000  Accept Rate: 0.6551
+Iter: 50000  Accept Rate: 0.66032
+Iter: 50000  Accept Rate: 0.65868
+Iter: 60000  Accept Rate: 0.660783
+Iter: 60000  Accept Rate: 0.6553
+Iter: 60000  Accept Rate: 0.661183
+Iter: 60000  Accept Rate: 0.658367
+Iter: 70000  Accept Rate: 0.661271
+Iter: 70000  Accept Rate: 0.656929
+Iter: 70000  Accept Rate: 0.662071
+Iter: 70000  Accept Rate: 0.659
+Iter: 80000  Accept Rate: 0.660175
+Iter: 80000  Accept Rate: 0.657675
+Iter: 80000  Accept Rate: 0.6618
+Iter: 80000  Accept Rate: 0.65945
+Iter: 90000  Accept Rate: 0.660833
+Iter: 90000  Accept Rate: 0.658267
+Iter: 90000  Accept Rate: 0.660822
+Iter: 90000  Accept Rate: 0.6594
+Final Acceptance Rate: 0.66122
+Final Acceptance Rate: 0.65858
+Final Acceptance Rate: 0.66162
+Final Acceptance Rate: 0.65966
 > 
-> save(output_nn, file = "outputnn_true.Rdata")
+> save(output_nn, file = "Output/outputnn_true.Rdata")
 > 
 > proc.time()
-   user  system elapsed 
- 31.389   1.752  21.780 
+     user    system   elapsed 
+148918.85   1479.46  16190.28 

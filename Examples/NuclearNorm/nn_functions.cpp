@@ -82,7 +82,7 @@ arma::vec grad_log_durpiLam(const arma::vec& x, double lambda, const arma::vec& 
   return term1 + term2;
 }
 
-
+// gradient for Guo method
 // [[Rcpp::export]]
 arma::vec grad_log_guopiLam(const arma::vec& x, double lambda, double alpha) {
   arma::vec x_prox = dur_prox_func(x, lambda, alpha);
@@ -90,9 +90,17 @@ arma::vec grad_log_guopiLam(const arma::vec& x, double lambda, double alpha) {
   return term2;
 }
 
+// sample leapfrog steps randomly
+// [[Rcpp::export]]
+int sample_L(int L_val) {
+  int val = (R::runif(0.0, 1.0) <= 0.05) ? 1 : L_val;
+  return val;
+}
+
+
 // [[Rcpp::export]]
 List phmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
-            int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
+            int iter, double eps_hmc, int L_val, arma::vec start, bool blather = true) {
   
   int nvar = y.n_elem;
   arma::mat samp_hmc(iter, nvar, fill::zeros);
@@ -109,6 +117,7 @@ List phmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
     arma::vec U_samp = -grad_log_durpiLam(samp, lambda, y, sigma2, alpha);
     arma::vec p_current = p_prop - 0.5 * eps_hmc * U_samp;
     arma::vec q_current = samp;
+    int L = sample_L(L_val);
     
     for (int j = 0; j < L; ++j) {
       samp += eps_hmc * p_current;
@@ -151,7 +160,7 @@ List phmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
 
 // [[Rcpp::export]]
 List nshmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
-           int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
+           int iter, double eps_hmc, int L_val, arma::vec start, bool blather = true) {
   
   int nvar = y.n_elem;
   arma::mat samp_hmc(iter, nvar, fill::zeros);
@@ -168,6 +177,7 @@ List nshmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
     arma::vec U_samp = -grad_logpiLam(samp, lambda, y, sigma2, alpha);
     arma::vec p_current = p_prop - 0.5 * eps_hmc * U_samp;
     arma::vec q_current = samp;
+    int L = sample_L(L_val);
     
     for (int j = 0; j < L; ++j) {
       samp += eps_hmc * p_current;
@@ -210,7 +220,7 @@ List nshmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
 
 // [[Rcpp::export]]
 List guohmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
-              int iter, double eps_hmc, int L, arma::vec start, bool blather = true) {
+              int iter, double eps_hmc, int L_val, arma::vec start, bool blather = true) {
   
   int nvar = y.n_elem;
   arma::mat samp_hmc(iter, nvar, fill::zeros);
@@ -227,6 +237,7 @@ List guohmc_cpp(const arma::vec& y, double alpha, double lambda, double sigma2,
     arma::vec U_samp = -grad_log_guopiLam(samp, lambda, alpha);
     arma::vec p_current = p_prop - 0.5 * eps_hmc * U_samp;
     arma::vec q_current = samp;
+    int L = sample_L(L_val);
     
     for (int j = 0; j < L; ++j) {
       samp += eps_hmc * p_current;
