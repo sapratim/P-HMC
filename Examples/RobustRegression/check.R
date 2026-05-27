@@ -18,7 +18,7 @@ L_guo       <- 10    # leapfrog steps for Guo-HMC
 
 ## ---- 2. MAP and sanity checks ------------------------------------------------
 
-MAP <- map_estimate(B, y, alpha, nu, sigma, rep(0, length(MAP)))
+MAP <- map_estimate(B, y, alpha, nu, sigma, rep(0, length(w_truth)))
 
 cbind(summary(MAP), summary(w_truth))
 log_pi(w_truth, y, B, nu, alpha, sigma)
@@ -33,7 +33,7 @@ precond_diag <- post_var_diag
 
 ## ---- 4. Production runs with the estimated preconditioner --------------------
 cat("--- pHMC ---\n")
-eps_p    <- 0.04
+eps_p    <- 0.048
 phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
                                               lambda = lambda_prox, alpha = alpha, sigma = sigma,
                                               iter   = iter, eps_hmc = eps_p, L = L_px, nu = nu,

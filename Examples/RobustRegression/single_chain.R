@@ -34,21 +34,3 @@ save(phmc_run, file = "Output/single_phmc_chain.Rdata")
 
 # dens_values <- apply(phmc_run[[1]], 1, function(x) log_pi(x, y, Phi_mat, nu, alpha, sigma))
 # MAP_sample <- phmc_run[[1]][which.max(dens_values),]
-
-pdf(file = "Output/MAP_plot.pdf", width = 12, height = 6)
-par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
-plot(w_truth, type = 'l', lwd = 1, cex.lab = 2.5, cex.axis = 3, ylab = "True signal")
-lines(MAP, type = 'l', col = "red", lwd = 1)
-dev.off()
-
-pdf(file = "Output/noisy_output.pdf", width = 12, height = 6)
-par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
-plot(y, type = 'l', lwd = 1, cex.lab = 2.5, cex.axis = 3)
-dev.off()
-
-pdf(file = "Output/truth_plot.pdf", width = 12, height = 6)
-par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
-plot(w_truth, type = 'l', lwd = 1, cex.lab = 2.5, cex.axis = 3, ylab = "True signal")
-dev.off()
-
-

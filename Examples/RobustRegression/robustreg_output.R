@@ -100,6 +100,28 @@ colnames(output_mat) <- c("Mean Error", "Avg MSE", "Standard Error")
 
 round(output_mat, 4)
 
+#################################################################################
+#################  Plots for MAP and data   #####################################
+#################################################################################
+
+pdf(file = "Output/MAP_plot.pdf", width = 12, height = 6)
+par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
+par(mgp = c(4, 1, 0))
+plot(w_truth, type = 'l', lwd = 1, cex.lab = 2.5, cex.axis = 3, ylab = "True signal")
+points(t_index, MAP[t_index], pch = 16, col = "blue")
+dev.off()
+
+pdf(file = "Output/noisy_output.pdf", width = 12, height = 6)
+par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
+par(mgp = c(4, 1, 0))
+plot(y, type = 'l', lwd = 1, cex.lab = 2.5, cex.axis = 3)
+dev.off()
+
+pdf(file = "Output/truth_plot.pdf", width = 12, height = 6)
+par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
+plot(w_truth, type = 'l', lwd = 1, cex.lab = 2.5, cex.axis = 3, ylab = "True signal")
+dev.off()
+
 
 
 

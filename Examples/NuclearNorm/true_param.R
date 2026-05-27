@@ -19,22 +19,21 @@ L <- 10
 
 
 parallel::detectCores()
-num_cores <- 4
+num_cores <- 10
 doParallel::registerDoParallel(cores = num_cores)
-reps <- 4
+reps <- 100
 
 blat <- TRUE
-output_nn <- foreach(b = 1:reps) %dopar% 
+output_nn_true <- foreach(b = 1:reps) %dopar% 
   {
     ## Run samplers
     print(b)
     
-    if(runif(1) < 0.05) {L <- 1}
     phmc_time <- system.time(phmc_run <- phmc_cpp(y=y, alpha = alpha_hat,lambda = lamb_coeff, sigma2 = sigma2_hat, 
-                                              iter = iter, eps_hmc = eps_px, L=L, start = warmup_end_iter, blather = blat))
-    
+                                                iter = iter, eps_hmc = eps_px, L_val = L, start = warmup_end_iter, blather = blat))
+  
     post_mean <- colMeans(phmc_run[[1]])
     list(post_mean)
   }
 
-save(output_nn, file = "outputnn_true.Rdata")
+save(output_nn_true, file = "Output/outputnn_true.Rdata")

@@ -20,10 +20,10 @@ w_start <- MAP + rnorm(length(MAP), 0, 0.01)
 # post_var_diag from loading marginal variances
 precond_diag <- post_var_diag
 
-iter <- 1e4
+iter <- 1e5
 lambda_prox <- .002
-L_px        <- 20    # leapfrog steps for pHMC / MALA
-L_guo       <- 20    # leapfrog steps for Guo-HMC
+L_px        <- 10    # leapfrog steps for pHMC / MALA
+L_guo       <- 10    # leapfrog steps for Guo-HMC
 
 parallel::detectCores()
 num_cores <- 10
@@ -34,14 +34,14 @@ output_rreg <- foreach(b = 1:reps) %dopar%
   {
     ## Run samplers
     print(b)
-    eps_p    <- 0.04
+    eps_p    <- 0.045
     phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
                                                   lambda = lambda_prox, alpha = alpha, sigma = sigma,
                                                   iter   = iter, eps_hmc = eps_p, L = L_px, nu = nu,
                                                   start  = w_start, precond = precond_diag, blather = TRUE))[3]
     
     cat("\n--- Guo-HMC ---\n")
-    eps_guo    <- 0.0004
+    eps_guo    <- 0.0008
     guohmc_time <- system.time(guohmc_run <- guohmc_cpp(B, y,
                                                         lambda = lambda_prox, alpha = alpha, sigma = sigma,
                                                         iter   = iter, eps_hmc = eps_guo, L = L_guo, nu = nu,

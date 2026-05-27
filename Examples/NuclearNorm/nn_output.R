@@ -84,7 +84,7 @@ dev.off()
 ########################  Function for metrics  ########################
 
 alg_means <- lapply(output_nnorm, '[[', 1)    #### list of posterior means for all reps
-true_means <- do.call(cbind, lapply(output_nn, '[[', 1))  #### actual means (dim x reps)
+true_means <- do.call(cbind, lapply(output_nn_true, '[[', 1))  #### actual means (dim x reps)
 truth_estimate <- rowMeans(true_means)
 
 names <- c("RWM", "pHMC", "myMALA", "nsHMC", "pMALA", "guoHMC")
@@ -127,7 +127,7 @@ output_mat[6,] <- sapply(guoHMC_output, rbind)
 rownames(output_mat) <- c("RWM", "pHMC", "myMALA", "nsHMC", "pMALA", "guoHMC")
 colnames(output_mat) <- c("Mean Error", "Avg MSE", "Standard Error")
 
-round(output_mat, 7)
+round(output_mat, 4)
 
 
 

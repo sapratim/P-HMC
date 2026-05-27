@@ -62,7 +62,7 @@ for(i in 1:length(lambda.seq))
 #        col = c( "black"), lty = c(2), lwd = 2, bty = "n")
 # abline(v = .002, lty = 2)
 
-pdf("Output/lambda_robustreg.pdf", height = 3.5, width = 4.8)
+pdf("Output/lambda_robustreg.pdf", height = 3.5, width = 4.2)
 plot(lambda.seq, phmc_ham, type = 'l', lwd = 2,
      xlab = expression(lambda[g]), ylab = expression(R[lambda[g]]),
      main = "")

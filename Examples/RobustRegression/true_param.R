@@ -22,7 +22,7 @@ precond_diag <- post_var_diag
 
 iter <- 1e6
 lambda_prox <- .002
-L_px  <- 20    
+L_px  <- 10    
 
 parallel::detectCores()
 num_cores <- 10
@@ -33,7 +33,7 @@ output_rreg_truth <- foreach(b = 1:reps) %dopar%
   {
     ## Run samplers
     print(b)
-    eps_p    <- 0.04
+    eps_p    <- 0.048
     phmc_time <- system.time(phmc_run <- phmc_cpp(B, y,
                                                   lambda = lambda_prox, alpha = alpha, sigma = sigma,
                                                   iter   = iter, eps_hmc = eps_p, L = L_px, nu = nu,
