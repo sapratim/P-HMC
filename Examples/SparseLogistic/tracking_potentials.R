@@ -104,7 +104,7 @@ plot(
   main = ""
 )
 
-abline(v = .001, lwd = 2, lty = 2)
+abline(v = .01, lwd = 2, lty = 2)
 
 legend(
   "bottomright",
