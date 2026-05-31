@@ -90,51 +90,27 @@ for(i in 1:length(lambda.seq))
   ns_ham[i] <- abs(potential - ns_state)/abs(potential)
 }
 
-pdf("Output/lambda_slogit.pdf", height = 3.5, width = 4.2)
-plot(lambda.seq, phmc_ham, type = 'l', lwd = 2, 
-     xlab = expression(lambda[g]), ylab = expression(R[lambda[g]]), 
-     main = "")
-abline(v = .01, lwd = 2, lty = 2)
-legend("bottomright", legend = expression("Choice of " * lambda[g]), 
-       col = c( "black"), lty = c(2), lwd = 2, bty = "n")
+pdf("Output/lambda_slogit.pdf", height = 2.5, width = 4)
+par(
+  mar = c(3.2, 3.5, 1.0, 1.5),  # bottom, left, top, right margins
+  mgp = c(2.0, 1.0, 0)          # axis title, axis labels, axis line
+)
+
+plot(
+  lambda.seq, phmc_ham,
+  type = "l", lwd = 2,
+  xlab = expression(lambda[g]),
+  ylab = expression(R^{lambda[g]}),
+  main = ""
+)
+
+abline(v = .001, lwd = 2, lty = 2)
+
+legend(
+  "bottomright",
+  legend = expression("Choice of " * lambda[g]),
+  lty = 2, lwd = 2,
+  bty = "n"
+)
+
 dev.off()
-
-
-# ignore 
-# 
-# L <- 10
-# lamb.vec <- c(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10)
-# eps.vec <-  seq(1e-5, 1e-3, length = 20)
-# 
-# truth <- log_pi(x, y, samp) + sum(dnorm(p_prop, log = TRUE))
-# ham_dur <- matrix(0, nrow = length(eps.vec), ncol = length(lamb.vec))
-# ham_cha <- matrix(0, nrow = length(eps.vec), ncol = length(lamb.vec))
-# for(i in 1:length(eps.vec))
-# {
-#   for(j in 1:length(lamb.vec))
-#   {
-#     ham_dur[i, j] <- Leap_pHMC(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
-#     ham_cha[i, j] <- Leap_Chaari(samp, p_prop, eps_hmc = eps.vec[i], L = L, lambda = lamb.vec[j])
-#   }
-# }
-# 
-# par(mfrow = c(2,3))
-# for(i in 1:min(6,length(eps.vec)))
-# {
-#   plot(log(lamb.vec), ham_dur[i, ], type = 'l', 
-#        ylim = range(c(truth, ham_dur[i,], ham_cha[i,])),
-#        main = paste("Eps = ", eps.vec[i]), col = "blue")
-#   lines(log(lamb.vec), ham_cha[i, ], col = "red")
-#   abline(h = truth, col = "black")
-# }
-# 
-# par(mfrow = c(2,3))
-# for(i in 1:length(lamb.vec))
-# {
-#   plot(log(eps.vec), ham_dur[,i], type = 'l', 
-#        ylim = range(c(truth, ham_dur[,i], ham_cha[,i])),
-#        main = paste("Lambda = ", lamb.vec[i]), col = "blue")
-#   lines(log(eps.vec), ham_cha[,i], col = "red")
-#   abline(h = truth, col = "black")
-# }
-# 

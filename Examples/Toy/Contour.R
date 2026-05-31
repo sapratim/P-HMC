@@ -208,12 +208,28 @@ for(i in 1:length(lambda.seq))
   ns_ham[i] <- abs(ham(q,p) - ham(ns_state[1], ns_state[2]))/abs(ham(q,p) )
 }
 
-pdf("lambda_toy.pdf", height = 3.5, width = 4.2)
-plot(lambda.seq, phmc_ham, type = 'l', lwd = 2, 
-  ylim = range(c(phmc_ham, 0)), xlab = expression(lambda[g]), ylab = expression(R[lambda[g]]))
-abline(v = 1, lty = 2, lwd = 2)
-legend("bottomright", legend = expression("Choice of " * lambda[g]),
-       col = "black", lty = 2, lwd = 2, bty = "n")
+pdf("lambda_toy.pdf", height = 2.5, width = 4)
+par(
+  mar = c(3.2, 3.5, 1.0, 1.5),  # bottom, left, top, right margins
+  mgp = c(2.0, 1.0, 0)          # axis title, axis labels, axis line
+)
+
+plot(
+  lambda.seq, phmc_ham,
+  type = "l", lwd = 2,
+  xlab = expression(lambda[g]),
+  ylab = expression(R^{lambda[g]}),
+  main = ""
+)
+
+abline(v = 1, lwd = 2, lty = 2)
+
+legend(
+  "bottomright",
+  legend = expression("Choice of " * lambda[g]),
+  lty = 2, lwd = 2,
+  bty = "n"
+)
 dev.off()
 
 

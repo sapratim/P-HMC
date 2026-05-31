@@ -62,12 +62,27 @@ for(i in 1:length(lambda.seq))
 #        col = c( "black"), lty = c(2), lwd = 2, bty = "n")
 # abline(v = .002, lty = 2)
 
-pdf("Output/lambda_robustreg.pdf", height = 3.5, width = 4.2)
-plot(lambda.seq, phmc_ham, type = 'l', lwd = 2,
-     xlab = expression(lambda[g]), ylab = expression(R[lambda[g]]),
-     main = "")
+pdf("Output/lambda_robustreg.pdf", height = 2.5, width = 4)
+par(
+  mar = c(3.2, 3.5, 1.0, 1.5),  # bottom, left, top, right margins
+  mgp = c(2.0, 1.0, 0)          # axis title, axis labels, axis line
+)
+
+plot(
+  lambda.seq, phmc_ham,
+  type = "l", lwd = 2,
+  xlab = expression(lambda[g]),
+  ylab = expression(R^{lambda[g]}),
+  main = ""
+)
+
 abline(v = .002, lwd = 2, lty = 2)
-legend("bottomright", legend = expression("Choice of " * lambda[g]),
-       col = c( "black"), lty = c(2), lwd = 2, bty = "n")
+
+legend(
+  "bottomright",
+  legend = expression("Choice of " * lambda[g]),
+  lty = 2, lwd = 2,
+  bty = "n"
+)
 dev.off()
 
