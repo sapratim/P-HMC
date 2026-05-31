@@ -57,7 +57,7 @@ dev.off()
 
 ############ acfs #########
 
-lag.max <- 100
+lag.max <- 40
 pdf("Output/nn_acf.pdf", height = 3, width = 4.5)
 par(mar = c(5, 4, 2, 2))
 
@@ -65,8 +65,8 @@ plot(0:lag.max, rep(1, lag.max + 1), type = "n", ylim = c(-.02, 1),
      ylab = "Estimated autocorrelations", xlab = "Lags")
 for(i in 1:4096)
 {
-  lines(0:lag.max, ns_acfs[,i], lwd = 1.5, col = "orange")
-  lines(0:lag.max, p_acfs[,i], lwd = 1.5, col = "purple", lty = 2)
+  lines(0:lag.max, ns_acfs[,i][1:(lag.max + 1)], lwd = 1.5, col = "orange")
+  lines(0:lag.max, p_acfs[,i][1:(lag.max + 1)], lwd = 1.5, col = "purple", lty = 2)
 }
 # Add a legend on top of the plot
 legend("top",

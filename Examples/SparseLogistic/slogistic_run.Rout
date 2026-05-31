@@ -49,44 +49,41 @@ Loading required package: parallel
 > L_px <- 10
 > L_guo <- 10
 > iter <- 1e5
-> eps_ns <- 0.00014
-> eps_p <-  0.00192
-> eps_guo <- 0.0001
-> 
+> eps_ns <- 0.00012
+> eps_p <-  0.0019
+> eps_guo <- 0.00012
+> blat <- FALSE
 > 
 > parallel::detectCores()
 [1] 64
 > num_cores <- 10
 > doParallel::registerDoParallel(cores = num_cores)
 > reps <- 100
-> blat <- FALSE
+> 
 > 
 > output_slog <- foreach(b = 1:reps) %dopar% 
 + {
 + ## Run samplers
 +   print(b)
-+   L_ns <- ifelse(runif(1) <= 0.05, 1, 10)
-+   L_px <- ifelse(runif(1) <= 0.05, 1, 10)
-+   L_guo <- ifelse(runif(1) <= 0.05, 1, 10)
 +   nshmc_time <- system.time(nshmc_run <- nshmc_cpp(x, y, lambda = 1, alpha = alpha, iter = iter,
-+                              eps_hmc = eps_ns, L = L_ns, start = beta_start, blather = blat))
++                              eps_hmc = eps_ns, L_val = L_ns, start = beta_start, blather = blat))
 +   
-+   eps <-  0.0018
++   eps <-  0.0016
 +   pmala_time <- system.time(pmala_run <- nshmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-+                             eps_hmc = eps, L = 1, start = beta_start, blather = blat))
++                             eps_hmc = eps, L_val = 1, start = beta_start, blather = blat))
 +   
 +   phmc_time <- system.time(phmc_run <- phmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_p, 
-+                           L = L_px, start = beta_start, alpha = alpha, blather = blat))
++                           L_val = L_px, start = beta_start, alpha = alpha, blather = blat))
 +   
 +   guohmc_time <- system.time(guohmc_run <- guohmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_guo, 
-+                           L = L_guo, start = beta_start, alpha = alpha, blather = blat))
++                           L_val = L_guo, start = beta_start, alpha = alpha, blather = blat))
 +   
-+   eps <-  0.002
++   eps <-  0.0019
 +   mymala_time <- system.time(mymala_run <- phmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-+                             eps_hmc = eps, L = 1, start = beta_start, blather = blat))
++                             eps_hmc = eps, L_val = 1, start = beta_start, blather = blat))
 +   
 +   rwm_time <- system.time(rwm_run <- rwm_cpp(x, y, iter = iter, 
-+                              h = .004 ,start = beta_start, alpha = alpha, blather = blat))
++                              h = .0045 ,start = beta_start, alpha = alpha, blather = blat))
 + 
 +   # Means
 +   all_means <- cbind(colMeans(rwm_run[[1]]), colMeans(phmc_run[[1]]), colMeans(mymala_run[[1]]),
@@ -114,99 +111,99 @@ Loading required package: parallel
 [1] 8
 [1] 9
 [1] 10
-[1] 20
+[1] 15
 [1] 17
 [1] 18
+[1] 20
+[1] 19
+[1] 13
+[1] 12
 [1] 14
 [1] 11
-[1] 19
-[1] 15
-[1] 12
-[1] 13
 [1] 16
-[1] 22
 [1] 30
-[1] 27
 [1] 28
-[1] 25
-[1] 21
-[1] 24
 [1] 29
-[1] 26
+[1] 27
+[1] 25
 [1] 23
-[1] 32
-[1] 37
-[1] 34
-[1] 35
-[1] 38
+[1] 22
+[1] 24
+[1] 26
+[1] 21
 [1] 40
-[1] 31
-[1] 33
 [1] 39
+[1] 38
+[1] 33
+[1] 35
+[1] 37
+[1] 32
 [1] 36
-[1] 42
-[1] 47
-[1] 44
-[1] 48
-[1] 45
+[1] 34
+[1] 31
 [1] 50
-[1] 43
-[1] 41
 [1] 49
+[1] 48
+[1] 43
+[1] 45
+[1] 47
 [1] 46
+[1] 42
+[1] 44
+[1] 41
+[1] 60
+[1] 59
+[1] 58
+[1] 53
 [1] 57
+[1] 55
+[1] 56
 [1] 52
 [1] 54
-[1] 53
 [1] 51
-[1] 60
-[1] 58
-[1] 55
-[1] 59
-[1] 56
-[1] 62
-[1] 67
-[1] 64
-[1] 68
-[1] 63
 [1] 70
-[1] 61
-[1] 65
-[1] 66
+[1] 68
 [1] 69
-[1] 72
-[1] 77
-[1] 78
-[1] 74
+[1] 63
+[1] 65
+[1] 67
+[1] 66
+[1] 64
+[1] 62
+[1] 61
 [1] 80
-[1] 73
-[1] 71
-[1] 75
-[1] 76
+[1] 78
 [1] 79
-[1] 86
-[1] 87
-[1] 82
-[1] 88
-[1] 84
-[1] 83
+[1] 73
+[1] 75
+[1] 77
+[1] 76
+[1] 74
+[1] 72
+[1] 71
 [1] 90
-[1] 81
-[1] 85
+[1] 88
 [1] 89
-[1] 96
-[1] 97
-[1] 92
-[1] 98
-[1] 94
-[1] 93
+[1] 83
+[1] 85
+[1] 87
+[1] 86
+[1] 84
+[1] 82
+[1] 81
 [1] 100
-[1] 91
-[1] 95
+[1] 98
 [1] 99
+[1] 93
+[1] 95
+[1] 97
+[1] 96
+[1] 94
+[1] 92
+[1] 91
 > 
 > save(output_slog, file = "Output/outputslog.Rdata")
 > 
 > proc.time()
        user      system     elapsed 
-1104054.717     745.905   34708.867 
+1071042.224     704.799   33508.824 

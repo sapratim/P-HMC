@@ -23,44 +23,41 @@ beta_start <- as.matrix(unname(logistic_fit ))
 L_ns <- 10
 L_px <- 10
 L_guo <- 10
-iter <- 1e3
-eps_ns <- 0.00014
-eps_p <-  0.00192
-eps_guo <- 0.0001
-
+iter <- 1e5
+eps_ns <- 0.00012
+eps_p <-  0.0019
+eps_guo <- 0.00012
+blat <- FALSE
 
 parallel::detectCores()
 num_cores <- 10
 doParallel::registerDoParallel(cores = num_cores)
 reps <- 100
-blat <- FALSE
+
 
 output_slog <- foreach(b = 1:reps) %dopar% 
 {
 ## Run samplers
   print(b)
-  L_ns <- ifelse(runif(1) <= 0.05, 1, 10)
-  L_px <- ifelse(runif(1) <= 0.05, 1, 10)
-  L_guo <- ifelse(runif(1) <= 0.05, 1, 10)
   nshmc_time <- system.time(nshmc_run <- nshmc_cpp(x, y, lambda = 1, alpha = alpha, iter = iter,
-                             eps_hmc = eps_ns, L = L_ns, start = beta_start, blather = blat))
+                             eps_hmc = eps_ns, L_val = L_ns, start = beta_start, blather = blat))
   
-  eps <-  0.0018
+  eps <-  0.0016
   pmala_time <- system.time(pmala_run <- nshmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-                            eps_hmc = eps, L = 1, start = beta_start, blather = blat))
+                            eps_hmc = eps, L_val = 1, start = beta_start, blather = blat))
   
   phmc_time <- system.time(phmc_run <- phmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_p, 
-                          L = L_px, start = beta_start, alpha = alpha, blather = blat))
+                          L_val = L_px, start = beta_start, alpha = alpha, blather = blat))
   
   guohmc_time <- system.time(guohmc_run <- guohmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_guo, 
-                          L = L_guo, start = beta_start, alpha = alpha, blather = blat))
+                          L_val = L_guo, start = beta_start, alpha = alpha, blather = blat))
   
-  eps <-  0.002
+  eps <-  0.0019
   mymala_time <- system.time(mymala_run <- phmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
-                            eps_hmc = eps, L = 1, start = beta_start, blather = blat))
+                            eps_hmc = eps, L_val = 1, start = beta_start, blather = blat))
   
   rwm_time <- system.time(rwm_run <- rwm_cpp(x, y, iter = iter, 
-                             h = .004 ,start = beta_start, alpha = alpha, blather = blat))
+                             h = .0045 ,start = beta_start, alpha = alpha, blather = blat))
 
   # Means
   all_means <- cbind(colMeans(rwm_run[[1]]), colMeans(phmc_run[[1]]), colMeans(mymala_run[[1]]),
@@ -80,19 +77,3 @@ output_slog <- foreach(b = 1:reps) %dopar%
 }
 
 save(output_slog, file = "Output/outputslog.Rdata")
-
-# iters <- 5e2
-# accept_vec <- numeric(length = iters)
-# for (j in 1:iters)
-# {
-#   guohmc_run <- guohmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_guo, 
-#                            L = L_guo, start = beta_start, alpha = alpha, blather = FALSE)
-#   accept_vec[j] <- guohmc_run[[2]]
-# }
-# hist(accept_vec, breaks = 50)
-# mean(accept_vec)
-# i<- 1
-#  traceplot(guohmc_run[[1]][,i], main = i)
-#  abline(h = beta_start[i], col = "red")
-#  i <- i+1
-# 

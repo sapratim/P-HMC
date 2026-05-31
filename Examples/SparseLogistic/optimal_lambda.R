@@ -21,17 +21,16 @@ beta_start <- as.matrix(unname(logistic_fit ))
 
 lambda_grid <- seq(1e-5, 2, length = 100)
 
-L_ns <- ifelse(runif(1) <= 0.05, 1, 10)
-
+L_ns <- 10
 iter <- 2e3
-eps_ns <- 0.00014
+eps_ns <- 0.00012
 lag_max <- 1
 acf_vec <- numeric(length = length(lambda_grid))
 
 for (i in 1:length(lambda_grid)) {
   print(i)
   nshmc_time <- system.time(nshmc_run <- nshmc_cpp(x, y, lambda = lambda_grid[i], 
-                    alpha = alpha, iter = iter, eps_hmc = eps_ns, L = L_ns, start = beta_start))
+                    alpha = alpha, iter = iter, eps_hmc = eps_ns, L_val = L_ns, start = beta_start))
   samp_mat <- nshmc_run[[1]]
   acf_lag1 <- sapply(seq_len(ncol(samp_mat)), function(j) {
                           cor(samp_mat[-1, j], samp_mat[-nrow(samp_mat), j])})

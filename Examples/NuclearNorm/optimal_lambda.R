@@ -13,17 +13,17 @@ load("warmup_chain.Rdata")
 
 iter <- 5e3
 eps_ns <-  .0045
-lambda_grid <- seq(1e-7, 0.0001, length = 100)
+lambda_grid <- seq(1e-6, 0.0001, length = 100)
+L <- 10
 acf_vec_min <- numeric(length = length(lambda_grid))
 acf_vec_mean <- numeric(length = length(lambda_grid))
 blat <- TRUE
 
 for (i in 1:length(lambda_grid)) {
   print(i)
-  L <- ifelse(runif(1) <= 0.05, 1, 10)
   nshmc_time <- system.time(nshmc_run <- nshmc_cpp(y=y, alpha = alpha_hat, lambda = lambda_grid[i], 
                                   sigma2 = sigma2_hat, iter = iter, eps_hmc = eps_ns, 
-                                  L = L, start = warmup_end_iter, blather = blat))
+                                  L_val = L, start = warmup_end_iter, blather = blat))
   samp_mat <- nshmc_run[[1]]
   acf_lag1 <- sapply(seq_len(ncol(samp_mat)), function(j) {
     cor(samp_mat[-1, j], samp_mat[-nrow(samp_mat), j])})

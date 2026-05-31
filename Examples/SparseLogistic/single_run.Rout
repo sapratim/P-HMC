@@ -1,0 +1,137 @@
+
+R version 4.4.3 (2025-02-28) -- "Trophy Case"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> ######################################################################
+> ########## Sparse logistic regression Single run  ####################
+> ######################################################################
+> library(mcmcse)
+> library(Matrix)
+> library(ks)
+> library(stats)
+> library(fasta)
+> library(glmnet)
+Loaded glmnet 4.1-8
+> library(Rcpp)
+> source("slogistic_data.R")
+> sourceCpp("slogistic_functions.cpp")
+> 
+> set.seed(1)
+> # starting values
+> logistic_fit <- glmnet(x, y, family = "binomial",
++                       alpha = 1, lambda = alpha/length(y), nlambda = 1,
++                       standardize = FALSE, intercept = FALSE)$beta
+>   
+> beta_start <- as.matrix(unname(logistic_fit ))
+> freq_mode <<- beta_start
+> blat <- TRUE
+> 
+> L_ns <- 10
+> L_px <- 10
+> L_guo <- 10
+> iter <- 1e5
+> eps_ns <- 0.00012
+> eps_p <-  0.0019
+> eps_guo <- 0.00012
+> 
+> 
+> nshmc_time <- system.time(nshmc_run <- nshmc_cpp(x, y, lambda = 1, alpha = alpha, iter = iter,
++                                                  eps_hmc = eps_ns, L_val = L_ns, start = beta_start, blather = blat))
+Iteration 10000, Acceptance rate so far: 0.6666
+Iteration 20000, Acceptance rate so far: 0.67015
+Iteration 30000, Acceptance rate so far: 0.670533
+Iteration 40000, Acceptance rate so far: 0.67305
+Iteration 50000, Acceptance rate so far: 0.67186
+Iteration 60000, Acceptance rate so far: 0.673267
+Iteration 70000, Acceptance rate so far: 0.6728
+Iteration 80000, Acceptance rate so far: 0.672225
+Iteration 90000, Acceptance rate so far: 0.671933
+> 
+> eps <-  0.0016
+> pmala_time <- system.time(pmala_run <- nshmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
++                                                  eps_hmc = eps, L_val = 1, start = beta_start, blather = blat))
+Iteration 10000, Acceptance rate so far: 0.5658
+Iteration 20000, Acceptance rate so far: 0.57095
+Iteration 30000, Acceptance rate so far: 0.5735
+Iteration 40000, Acceptance rate so far: 0.570625
+Iteration 50000, Acceptance rate so far: 0.57078
+Iteration 60000, Acceptance rate so far: 0.571583
+Iteration 70000, Acceptance rate so far: 0.570771
+Iteration 80000, Acceptance rate so far: 0.569338
+Iteration 90000, Acceptance rate so far: 0.569233
+> 
+> phmc_time <- system.time(phmc_run <- phmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_p, 
++                                               L_val = L_px, start = beta_start, alpha = alpha, blather = blat))
+Iteration 10000, Acceptance rate so far: 0.6512
+Iteration 20000, Acceptance rate so far: 0.6524
+Iteration 30000, Acceptance rate so far: 0.652433
+Iteration 40000, Acceptance rate so far: 0.65505
+Iteration 50000, Acceptance rate so far: 0.6545
+Iteration 60000, Acceptance rate so far: 0.6542
+Iteration 70000, Acceptance rate so far: 0.653986
+Iteration 80000, Acceptance rate so far: 0.653975
+Iteration 90000, Acceptance rate so far: 0.655622
+> 
+> guohmc_time <- system.time(guohmc_run <- guohmc_cpp(x, y, lambda = .01, iter = iter, eps_hmc = eps_guo, 
++                                                     L_val = L_guo, start = beta_start, alpha = alpha, blather = blat))
+Iteration 10000, Acceptance rate so far: 0.6656
+Iteration 20000, Acceptance rate so far: 0.66885
+Iteration 30000, Acceptance rate so far: 0.669733
+Iteration 40000, Acceptance rate so far: 0.6703
+Iteration 50000, Acceptance rate so far: 0.67226
+Iteration 60000, Acceptance rate so far: 0.672833
+Iteration 70000, Acceptance rate so far: 0.673086
+Iteration 80000, Acceptance rate so far: 0.67285
+Iteration 90000, Acceptance rate so far: 0.673222
+> 
+> eps <-  0.0019
+> mymala_time <- system.time(mymala_run <- phmc_cpp(x, y, lambda = eps/2, alpha = alpha, iter = iter,
++                                                   eps_hmc = eps, L_val = 1, start = beta_start, blather = blat))
+Iteration 10000, Acceptance rate so far: 0.5932
+Iteration 20000, Acceptance rate so far: 0.59265
+Iteration 30000, Acceptance rate so far: 0.588533
+Iteration 40000, Acceptance rate so far: 0.588
+Iteration 50000, Acceptance rate so far: 0.59028
+Iteration 60000, Acceptance rate so far: 0.590983
+Iteration 70000, Acceptance rate so far: 0.591886
+Iteration 80000, Acceptance rate so far: 0.592137
+Iteration 90000, Acceptance rate so far: 0.592633
+> 
+> rwm_time <- system.time(rwm_run <- rwm_cpp(x, y, iter = iter, 
++                                            h = .0045 ,start = beta_start, alpha = alpha, blather = blat))
+Iteration 10000, Acceptance rate so far: 0.2404
+Iteration 20000, Acceptance rate so far: 0.2458
+Iteration 30000, Acceptance rate so far: 0.2483
+Iteration 40000, Acceptance rate so far: 0.249175
+Iteration 50000, Acceptance rate so far: 0.24792
+Iteration 60000, Acceptance rate so far: 0.245967
+Iteration 70000, Acceptance rate so far: 0.246529
+Iteration 80000, Acceptance rate so far: 0.24645
+Iteration 90000, Acceptance rate so far: 0.247122
+> 
+> 
+> save(nshmc_run, pmala_run, phmc_run, mymala_run, rwm_run, guohmc_run,
++      nshmc_time, pmala_time, mymala_time, rwm_time, guohmc_time, file = "Output/slog_single.Rdata")
+> 
+> 
+> 
+> proc.time()
+     user    system   elapsed 
+11273.917    10.555  2823.588 
