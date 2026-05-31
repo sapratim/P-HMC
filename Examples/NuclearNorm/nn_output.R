@@ -59,7 +59,10 @@ dev.off()
 
 lag.max <- 40
 pdf("Output/nn_acf.pdf", height = 3, width = 4.5)
-par(mar = c(5, 4, 2, 2))
+par(
+  mar = c(3.2, 3.5, 1.5, 1.5),  # bottom, left, top, right margins
+  mgp = c(2.0, 1.0, 0)          # axis title, axis labels, axis line
+)
 
 plot(0:lag.max, rep(1, lag.max + 1), type = "n", ylim = c(-.02, 1),
      ylab = "Estimated autocorrelations", xlab = "Lags")
