@@ -109,22 +109,29 @@ round(output_mat, 4)
 ###############   Obtain MAP estimate
 MAP <- map_estimate(B, y, alpha, nu, sigma, w_truth)
 
-pdf(file = "Output/MAP_plot.pdf", width = 12, height = 6)
-par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
-par(mgp = c(4, 2, 0))
-plot(w_truth, type = 'l', lwd = 1, cex.lab = 2.2, cex.axis = 2.7, ylab = "True signal")
-points(t_index, MAP[t_index], pch = 16, col = "blue", cex = 1.8)
+pdf(file = "Output/MAP_plot.pdf", width = 5, height = 3)
+par(
+  mar = c(3.2, 3.5, 1.5, 1.5),  # bottom, left, top, right margins
+  mgp = c(2.0, 1.0, 0)          # axis title, axis labels, axis line
+)
+plot(w_truth, type = 'l', lwd = 1, ylab = "True signal")
+points(t_index, MAP[t_index], pch = 16, col = "blue", cex = 1.3)
 dev.off()
 
-pdf(file = "Output/noisy_output.pdf", width = 12, height = 6)
-par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
-par(mgp = c(4, 2, 0))
-plot(y, type = 'l', lwd = 1, cex.lab = 2.2, cex.axis = 2.7)
+pdf(file = "Output/noisy_output.pdf", width = 5, height = 3)
+par(
+  mar = c(3.2, 3.5, 1.5, 1.5),  # bottom, left, top, right margins
+  mgp = c(2.0, 1.0, 0)          # axis title, axis labels, axis line
+)
+plot(y, type = 'l', lwd = 1)
 dev.off()
 
-pdf(file = "Output/truth_plot.pdf", width = 12, height = 6)
-par(mar = c(5, 6, 4, 2))  # bottom, left, top, right
-plot(w_truth, type = 'l', lwd = 1, cex.lab = 2.5, cex.axis = 3, ylab = "True signal")
+pdf(file = "Output/truth_plot.pdf", width = 5, height = 3)
+par(
+  mar = c(3.2, 3.5, 1.5, 1.5),  # bottom, left, top, right margins
+  mgp = c(2.0, 1.0, 0)          # axis title, axis labels, axis line
+)
+plot(w_truth, type = 'l', lwd = 1, ylab = "True signal")
 dev.off()
 
 
